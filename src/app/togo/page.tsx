@@ -374,29 +374,6 @@ export default function ToGoPage() {
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button 
-            onClick={() => setScannerMode(!scannerMode)}
-            title={scannerMode ? "Scanner-läge: Tangentbordet kommer inte visa sig mellan skanningar" : "Manual-läge: Tangentbordet syns för manuell inmatning"}
-            style={{ 
-              padding: "10px 16px", 
-              background: scannerMode ? "#E4002B" : "#f0f0f0", 
-              color: scannerMode ? "white" : "#333", 
-              border: "none",
-              borderRadius: 8, 
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "all 0.2s",
-              whiteSpace: "nowrap",
-              minHeight: "44px",
-              display: "flex",
-              alignItems: "center",
-              fontSize: "clamp(0.85em, 2vw, 0.95em)"
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          >
-            {scannerMode ? "📱 Scanner-läge" : "⌨️ Manual-läge"}
-          </button>
-          <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
               padding: "10px 16px", 
