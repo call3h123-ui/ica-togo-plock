@@ -147,6 +147,9 @@ export default function ToGoPage() {
       console.log("handleScanSubmit -> ean:", ean);
       if (!ean) return;
 
+      // Rensa scanValue direkt - användaren kan scanna nästa vara direkt
+      setScanValue("");
+
       // If modal is open (modalOpen is true), save the current product first
       if (modalOpen && newEan && newName.trim()) {
         console.log("handleScanSubmit -> modal open, saving current product first");
@@ -219,7 +222,6 @@ export default function ToGoPage() {
       setNewCat(product.default_category_id || defaultCatId);
       setNewQty(1); // Reset quantity for new addition
 
-      setScanValue("");
       scanRef.current?.focus();
     } catch (err) {
       console.error("handleScanSubmit error:", err);
