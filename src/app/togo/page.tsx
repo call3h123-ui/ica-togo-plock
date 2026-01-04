@@ -286,14 +286,33 @@ export default function ToGoPage() {
     readerRef.current = new BrowserMultiFormatReader();
     const reader = readerRef.current;
 
-    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-    const backCam = devices.find((d) => /back|rear|environment/i.test(d.label)) ?? devices[0];
+    try {
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+      const backCam = devices.find((d) => /back|rear|environment/i.test(d.label)) ?? devices[0];
 
-    await reader.decodeFromVideoDevice(backCam?.deviceId, videoRef.current!, (result, _err) => {
-      if (result) {
-        handleScanSubmit(result.getText());
+      if (!backCam) {
+        alert("Ingen kamera funnen");
+        setCamOn(false);
+        return;
       }
-    });
+
+      // Wait for video element to be ready
+      if (videoRef.current) {
+        videoRef.current.onloadedmetadata = () => {
+          // Video is ready, start decoding
+        };
+      }
+
+      await reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current!, (result, _err) => {
+        if (result) {
+          handleScanSubmit(result.getText());
+        }
+      });
+    } catch (err) {
+      console.error("Camera error:", err);
+      alert("Kunde inte starta kamera: " + (err instanceof Error ? err.message : "Okänt fel"));
+      setCamOn(false);
+    }
   }
 
   async function stopCamera() {
@@ -484,7 +503,13 @@ export default function ToGoPage() {
 
             {camOn && (
               <div style={{ marginBottom: "clamp(12px, 3vw, 16px)", background: "#f5f5f5", padding: "clamp(10px, 2vw, 12px)", borderRadius: 12 }}>
-                <video ref={videoRef} style={{ width: "100%", maxWidth: 400, borderRadius: 10, border: "3px solid #E4002B" }} muted playsInline />
+                <video 
+                  ref={videoRef} 
+                  autoPlay={true}
+                  playsInline={true}
+                  style={{ width: "100%", maxWidth: 400, borderRadius: 10, border: "3px solid #E4002B" }} 
+                  muted 
+                />
               </div>
             )}
 
