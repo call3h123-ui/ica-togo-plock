@@ -455,9 +455,6 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
           </div>
         )}
       
-      {row.product?.image_url && (
-        <img src={row.product.image_url} alt="Produktbild" style={{ width: "80px", height: "100px", objectFit: "cover", borderRadius: 8, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); e.preventDefault(); setExpandedImage(row.product?.image_url || null); }} />
-      )}
       <div style={{ flex: "1 1 200px", minWidth: "150px" }}>
         <div style={{ fontSize: "clamp(1em, 2vw, 1.1em)", fontWeight: 600, color: toned ? "#999" : "#222" }}>{row.product?.name ?? "Okänd artikel"}</div>
         {(row.product as any)?.brand && (
