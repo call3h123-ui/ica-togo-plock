@@ -367,7 +367,12 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
           {(row.product as any)?.weight && (
             <div style={{ color: "#000", fontSize: "clamp(0.75em, 1.2vw, 0.85em)", fontWeight: 600 }}>{(row.product as any).weight}</div>
           )}
-          <div style={{ opacity: 0.6, fontSize: "clamp(0.7em, 1.1vw, 0.75em)", color: "#666" }}>EAN: {row.ean}</div>
+          <div style={{ opacity: 0.6, fontSize: "clamp(0.7em, 1.1vw, 0.75em)", color: "#666", display: "flex", gap: 12, alignItems: "center" }}>
+            <span>EAN: {row.ean}</span>
+            {row.created_at && (
+              <span style={{ whiteSpace: "nowrap" }}>{new Date(row.created_at).toLocaleString("sv-SE")}</span>
+            )}
+          </div>
         </div>
 
         <div style={{ fontSize: "clamp(1em, 2.2vw, 1.2em)", fontWeight: 700, color: "#E4002B", minWidth: 40, textAlign: "right", flexShrink: 0 }}>×{row.qty}</div>
