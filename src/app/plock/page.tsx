@@ -108,8 +108,6 @@ export default function PlockPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [me, setMe] = useState<string>("");
-  const [mailOpen, setMailOpen] = useState(false);
-  const [mailTo, setMailTo] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -224,12 +222,6 @@ export default function PlockPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "clamp(12px, 3vw, 12px)", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)" }}>
-        <button onClick={() => setMailOpen(true)} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", minWidth: "120px" }}>
-          📧 Maila
-        </button>
-      </div>
-
       <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
         <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -277,83 +269,6 @@ export default function PlockPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Mail Popup */}
-      {mailOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-          <div style={{ width: "100%", maxWidth: 450, background: "#fff", borderRadius: 14, padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>📧 Skicka plocklista</h2>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>E-postadress:</label>
-              <input
-                value={mailTo}
-                onChange={(e) => setMailTo(e.target.value)}
-                placeholder="exempel@mail.com"
-                type="email"
-                style={{ width: "100%", padding: 10, borderRadius: 6, border: "2px solid #ddd", fontSize: "0.95em", boxSizing: "border-box" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>Visa favoriter först:</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 200, overflowY: "auto" }}>
-                {categories.map((cat) => (
-                  <label key={cat.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={favorites.includes(cat.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          const updated = [...favorites, cat.id];
-                          setFavorites(updated);
-                          localStorage.setItem("plock_favorites", JSON.stringify(updated));
-                        } else {
-                          const updated = favorites.filter((id) => id !== cat.id);
-                          setFavorites(updated);
-                          localStorage.setItem("plock_favorites", JSON.stringify(updated));
-                        }
-                      }}
-                    />
-                    {cat.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => {
-                  if (!mailTo.trim()) return alert("Skriv en e-postadress");
-                  // Generate HTML with filtered favorites
-                  let filteredRows = todo;
-                  if (favorites.length > 0) {
-                    const favRows = todo.filter((r) => favorites.includes(r.category_id));
-                    const otherRows = todo.filter((r) => !favorites.includes(r.category_id));
-                    filteredRows = [...favRows, ...otherRows];
-                  }
-                  const html = generatePickListPDF(filteredRows, categories);
-                  const subject = `Plocklista - ${new Date().toLocaleString("sv-SE")}`;
-                  const body = `Se bifogad HTML-fil för plocklistan.`;
-                  // Open default mail client with link
-                  window.location.href = `mailto:${mailTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                  setMailOpen(false);
-                  setMailTo("");
-                }}
-                style={{ flex: 1, padding: 12, fontSize: "1em", fontWeight: 600, background: "#4CAF50", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
-              >
-                Skicka
-              </button>
-              <button
-                onClick={() => setMailOpen(false)}
-                style={{ flex: 1, padding: 12, fontSize: "1em", fontWeight: 600, background: "#999", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
-              >
-                Avbryt
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
