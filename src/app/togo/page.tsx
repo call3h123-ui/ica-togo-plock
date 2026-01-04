@@ -86,9 +86,6 @@ export default function ToGoPage() {
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
 
-  // Keyboard visibility for EAN input
-  const [showKeyboard, setShowKeyboard] = useState(false);
-
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
 
   async function refresh() {
@@ -606,107 +603,32 @@ export default function ToGoPage() {
           <div style={modalStyle.card}>
             {/* Liten EAN-info och kamera innanför modalen */}
             <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
-              {!showKeyboard ? (
-                <>
-                  <input
-                    ref={scanRef}
-                    value={scanValue}
-                    onChange={(e) => setScanValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleScanSubmit((e.target as HTMLInputElement).value);
-                      }
-                    }}
-                    placeholder="Scanna EAN"
-                    readOnly
-                    style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
-                  />
-                  <button 
-                    onClick={() => setShowKeyboard(true)}
-                    style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(1em, 1.5vw, 1.1em)", whiteSpace: "nowrap", background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    title="Öppna numerisk inmatning"
-                  >
-                    ⌨️
-                  </button>
-                </>
-              ) : (
-                <div style={{ width: "100%", marginBottom: 12 }}>
-                  <input
-                    ref={scanRef}
-                    value={scanValue}
-                    onChange={(e) => setScanValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleScanSubmit((e.target as HTMLInputElement).value);
-                        setShowKeyboard(false);
-                      }
-                    }}
-                    placeholder="EAN-kod"
-                    inputMode="numeric"
-                    style={{ width: "100%", padding: "clamp(8px, 2vw, 10px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 6, border: "2px solid #E4002B", marginBottom: 8 }}
-                  />
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 8 }}>
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => setScanValue(scanValue + num)}
-                        style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                      >
-                        {num}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6 }}>
-                    <button
-                      onClick={() => setScanValue(scanValue + '0')}
-                      style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      0
-                    </button>
-                    <button
-                      onClick={() => setScanValue(scanValue.slice(0, -1))}
-                      style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#999", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      ⌫
-                    </button>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
-                    <button
-                      onClick={() => handleScanSubmit(scanValue)}
-                      style={{ padding: 12, fontSize: 16, fontWeight: 600, background: "#4CAF50", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      ✓ OK
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowKeyboard(false);
-                        setScanValue("");
-                      }}
-                      style={{ padding: 12, fontSize: 16, fontWeight: 600, background: "#ccc", color: "#333", border: "none", borderRadius: 6, cursor: "pointer" }}
-                    >
-                      Stäng
-                    </button>
-                  </div>
-                </div>
-              )}
-              {!showKeyboard && (
-                <>
-                  {!camOn ? (
-                    <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
-                      📷
-                    </button>
-                  ) : (
-                    <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
-                      ✕
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+            <input
+              ref={scanRef}
+              value={scanValue}
+              onChange={(e) => setScanValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleScanSubmit((e.target as HTMLInputElement).value);
+                }
+              }}
+              placeholder="Scanna EAN"
+              inputMode="numeric"
+              autoComplete="off"
+              style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
+            />
+            {!camOn ? (
+              <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
+                📷
+              </button>
+            ) : (
+              <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
+                ✕
+              </button>
+            )}
+          </div>
 
             {camOn && (
               <div style={{ marginBottom: "clamp(8px, 2vw, 12px)", background: "#f5f5f5", padding: "clamp(8px, 2vw, 10px)", borderRadius: 8 }}>
