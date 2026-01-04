@@ -261,6 +261,12 @@ export default function ToGoPage() {
       setNewImage("");
       setNewQty(1);
       setNewWeight(null);
+      
+      // Fokusera på EAN-fältet igen så nästa scan går dit
+      // (inte i varumärke eller annat fält)
+      setTimeout(() => {
+        scanRef.current?.focus();
+      }, 100);
     } catch (err) {
       console.error("saveNewProduct error:", err);
       let msg = "Fel vid sparande";
