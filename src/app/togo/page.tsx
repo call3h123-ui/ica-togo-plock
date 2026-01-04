@@ -154,6 +154,15 @@ export default function ToGoPage() {
     };
   }, [cameraForImage]);
 
+  // Auto-restart camera when modal opens (after scanning a product)
+  useEffect(() => {
+    if (modalOpen && camOn && !videoRef.current?.srcObject) {
+      console.log("Auto-restarting camera after product scan");
+      startCamera();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalOpen]);
+
   async function handleScanSubmit(value: string) {
     // Prevent duplicate scans - if already scanning, ignore
     if (scanningRef.current) {
@@ -366,7 +375,7 @@ export default function ToGoPage() {
         return;
       }
 
-      // Step 1: Find the best camera to use (prefer rear wide camera on Android)
+      // Step 1: Find the best camera to use (prefer rear/back camera on Android)
       let selectedDeviceId: string | undefined = undefined;
       
       try {
@@ -375,14 +384,34 @@ export default function ToGoPage() {
         
         console.log(`📹 Found ${videoCameras.length} camera(s):`);
         videoCameras.forEach((cam, idx) => {
-          console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (${cam.deviceId})`);
+          console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (ID: ${cam.deviceId.substring(0, 8)}...)`);
         });
 
-        // Prefer the first rear camera (usually the main wide camera)
-        // Android typically has: [0] = wide, [1] = ultra-wide, [2] = telephoto
-        if (videoCameras.length > 0) {
-          selectedDeviceId = videoCameras[0].deviceId;
-          console.log(`✓ Using camera: ${videoCameras[0].label || 'Main Camera'}`);
+        // Try to find a rear/back camera (not front/selfie)
+        // Look for keywords that indicate a rear camera
+        const rearCameraKeywords = ['back', 'rear', 'main', 'wide', '0', 'environment'];
+        const frontCameraKeywords = ['front', 'selfie', 'user', 'face'];
+        
+        let rearCamera = videoCameras.find(cam => {
+          const label = (cam.label || '').toLowerCase();
+          return rearCameraKeywords.some(keyword => label.includes(keyword)) && 
+                 !frontCameraKeywords.some(keyword => label.includes(keyword));
+        });
+        
+        // If no rear camera found by label, try using facingMode
+        if (!rearCamera && videoCameras.length > 1) {
+          // Usually the second camera is rear on phones with front camera first
+          rearCamera = videoCameras[1];
+        }
+        
+        // Default to first camera if nothing else found
+        if (!rearCamera && videoCameras.length > 0) {
+          rearCamera = videoCameras[0];
+        }
+        
+        if (rearCamera) {
+          selectedDeviceId = rearCamera.deviceId;
+          console.log(`✓ Using rear camera: ${rearCamera.label || 'Main Camera'}`);
         }
       } catch (e) {
         console.log("Could not enumerate devices, will use default");
