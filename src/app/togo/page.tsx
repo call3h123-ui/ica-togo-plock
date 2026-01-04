@@ -336,7 +336,6 @@ export default function ToGoPage() {
       videoRef.current.srcObject = null;
     }
     if (readerRef.current) {
-      readerRef.current.reset();
       readerRef.current = null;
     }
   }
