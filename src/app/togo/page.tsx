@@ -261,6 +261,7 @@ export default function ToGoPage() {
       setNewImage("");
       setNewQty(1);
       setNewWeight(null);
+      setScanValue(""); // Töm EAN-fältet
       
       // Fokusera på EAN-fältet igen så nästa scan går dit
       // (inte i varumärke eller annat fält)
