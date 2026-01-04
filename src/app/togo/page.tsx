@@ -589,8 +589,8 @@ export default function ToGoPage() {
       {modalOpen && (
         <div style={modalStyle.overlay}>
           <div style={modalStyle.card}>
-            {/* EAN input och kamera innanför modalen */}
-            <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 16, background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12 }}>
+            {/* Liten EAN-info och kamera innanför modalen */}
+            <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
               <input
                 value={scanValue}
                 onChange={(e) => setScanValue(e.target.value)}
@@ -601,159 +601,148 @@ export default function ToGoPage() {
                     handleScanSubmit((e.target as HTMLInputElement).value);
                   }
                 }}
-                placeholder="Mata in eller scanna EAN"
-                style={{ flex: "1 1 200px", minWidth: "150px", padding: "clamp(8px, 2vw, 10px)", fontSize: "clamp(13px, 2vw, 15px)", borderRadius: 8, border: "2px solid #E4002B" }}
+                placeholder="Scanna EAN"
+                style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
               />
               {!camOn ? (
-                <button onClick={startCamera} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(0.8em, 2vw, 0.85em)", whiteSpace: "nowrap" }}>
-                  📷 Kamera
+                <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
+                  📷
                 </button>
               ) : (
-                <button onClick={stopCamera} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(0.8em, 2vw, 0.85em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
-                  ✕ Stäng
+                <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
+                  ✕
                 </button>
               )}
             </div>
 
             {camOn && (
-              <div style={{ marginBottom: "clamp(12px, 3vw, 16px)", background: "#f5f5f5", padding: "clamp(10px, 2vw, 12px)", borderRadius: 12 }}>
+              <div style={{ marginBottom: "clamp(8px, 2vw, 12px)", background: "#f5f5f5", padding: "clamp(8px, 2vw, 10px)", borderRadius: 8 }}>
                 <video 
                   ref={videoRef} 
                   autoPlay={true}
                   playsInline={true}
-                  style={{ width: "100%", maxWidth: 400, borderRadius: 10, border: "3px solid #E4002B" }} 
+                  style={{ width: "100%", maxWidth: 300, borderRadius: 8, border: "2px solid #E4002B" }} 
                   muted 
                 />
               </div>
             )}
 
-            <div style={{ background: "#f0f0f0", padding: 12, borderRadius: 8, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, color: "#666" }}>EAN:</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#E4002B" }}>{newEan}</div>
-            </div>
-
             {loadingProduct && (
-              <div style={{ background: "#e8f4f8", padding: 12, borderRadius: 8, marginBottom: 12, textAlign: "center", color: "#0066cc" }}>
+              <div style={{ background: "#e8f4f8", padding: 12, borderRadius: 8, marginBottom: 12, textAlign: "center", color: "#0066cc", fontSize: "0.9em" }}>
                 Hämtar produktinfo...
               </div>
             )}
 
-            {newImage && (
-              <div style={{ marginBottom: 16, textAlign: "center" }}>
-                <img 
-                  src={newImage} 
-                  alt="Produktbild" 
-                  style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: 8, cursor: "pointer", transition: "all 0.2s" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setExpandedImage(newImage);
-                  }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLImageElement).style.boxShadow = "0 4px 12px rgba(228, 0, 43, 0.3)";
-                    (e.target as HTMLImageElement).style.transform = "scale(1.03)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLImageElement).style.boxShadow = "none";
-                    (e.target as HTMLImageElement).style.transform = "scale(1)";
-                  }}
-                />
-                <p style={{ fontSize: "0.85em", color: "#666", marginTop: 6 }}>Klicka för att se större</p>
+            {/* Produktinfo-rad: Bild + Info */}
+            <div style={{ display: "flex", gap: "clamp(12px, 3vw, 16px)", marginBottom: 16, alignItems: "flex-start" }}>
+              {/* Liten produktbild */}
+              {newImage && (
+                <div style={{ flex: "0 0 auto" }}>
+                  <img 
+                    src={newImage} 
+                    alt="Produktbild" 
+                    style={{ width: 80, height: 100, objectFit: "contain", borderRadius: 6, background: "#f5f5f5", cursor: "pointer", transition: "all 0.2s" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setExpandedImage(newImage);
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Produktinfo: namn, märke, vikt */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "clamp(1.05em, 2vw, 1.15em)", fontWeight: 700, color: "#222", marginBottom: 4, wordBreak: "break-word" }}>
+                  {newName || "Produktnamn"}
+                </div>
+                {newBrand && (
+                  <div style={{ fontSize: "clamp(0.85em, 1.5vw, 0.9em)", color: "#666", marginBottom: 4 }}>
+                    {newBrand}
+                  </div>
+                )}
+                {newWeight && (
+                  <div style={{ fontSize: "clamp(0.9em, 1.5vw, 0.95em)", fontWeight: 600, color: "#E4002B", marginBottom: 4 }}>
+                    {newWeight}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
+            {/* Antalet - prominent */}
+            <div style={{ marginBottom: 16, background: "#fff3e0", padding: "clamp(12px, 2vw, 16px)", borderRadius: 10, border: "2px solid #E4002B" }}>
+              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, color: "#333", fontSize: "clamp(0.95em, 1.5vw, 1em)" }}>Antal</label>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button 
+                    onClick={() => setNewQty(Math.max(1, (newQty || 1) - 1))} 
+                    style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                  >−</button>
+                  <input value={newQty} onChange={(e) => setNewQty(Math.max(1, Number(e.target.value || 1)))} style={{ width: 60, textAlign: "center", padding: 10, fontSize: 18, fontWeight: 700, border: "2px solid #E4002B", borderRadius: 6 }} inputMode="numeric" />
+                  <button 
+                    onClick={() => setNewQty((newQty || 1) + 1)} 
+                    style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                  >+</button>
+                </div>
+                <div style={{ fontSize: "1.8em", fontWeight: 700, color: "#E4002B" }}>×{newQty}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                {[3, 4, 5, 6].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setNewQty(num)}
+                    style={{
+                      flex: 1,
+                      padding: "6px",
+                      fontSize: "0.85em",
+                      fontWeight: 600,
+                      background: newQty === num ? "#E4002B" : "#ddd",
+                      color: newQty === num ? "white" : "#333",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Redigerbara fält - mindre och lite mer kompakt */}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Produktnamn *</label>
+              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Produktnamn *</label>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="T.ex. Mellanmjölk 1L"
-                style={{ width: "100%", padding: 12, fontSize: 16 }}
-                autoFocus
+                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
               />
             </div>
 
-            <div style={{ marginBottom: 20, background: "#fff3e0", padding: 16, borderRadius: 12, border: "2px solid #E4002B" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <button 
-                      onClick={() => setNewQty(Math.max(1, (newQty || 1) - 1))} 
-                      style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer", transition: "all 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
-                    >−</button>
-                    <input value={newQty} onChange={(e) => setNewQty(Math.max(1, Number(e.target.value || 1)))} style={{ width: 70, textAlign: "center", padding: 10, fontSize: 20, fontWeight: 700, border: "2px solid #E4002B", borderRadius: 6 }} inputMode="numeric" />
-                    <button 
-                      onClick={() => setNewQty((newQty || 1) + 1)} 
-                      style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer", transition: "all 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
-                    >+</button>
-                    {[3, 4, 5, 6].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => setNewQty(num)}
-                        style={{
-                          padding: "6px 12px",
-                          fontSize: 14,
-                          fontWeight: 600,
-                          background: newQty === num ? "#E4002B" : "#ddd",
-                          color: newQty === num ? "white" : "#333",
-                          border: "none",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          transition: "all 0.15s",
-                          minWidth: 38,
-                          marginLeft: num === 3 ? 20 : 0
-                        }}
-                        onMouseEnter={(e) => {
-                          if (newQty !== num) {
-                            (e.currentTarget as HTMLButtonElement).style.background = "#bbb";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (newQty !== num) {
-                            (e.currentTarget as HTMLButtonElement).style.background = "#ddd";
-                          }
-                        }}
-                      >
-                        {num}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ fontSize: "2.5em", fontWeight: 700, color: "#E4002B", marginLeft: 16 }}>×{newQty}</div>
-              </div>
-            </div>
-
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Varumärke</label>
+              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Varumärke</label>
               <input
                 value={newBrand}
                 onChange={(e) => setNewBrand(e.target.value)}
-                placeholder="T.ex. Arla, Fontana"
-                style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+                placeholder="T.ex. Arla"
+                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
               />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Hämtas automatiskt från EAN när möjligt.</div>
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Vikt (t.ex. 1kg, 500g)</label>
+              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Vikt</label>
               <input
                 value={newWeight ?? ""}
                 onChange={(e) => setNewWeight(e.target.value ? e.target.value : null)}
-                placeholder="Lämna tomt om ingen vikt"
-                style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+                placeholder="T.ex. 1kg"
+                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
               />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Redigera vikten om automatisk hämtning är felaktig.</div>
             </div>
 
+            {/* Bild-upload */}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Bild</label>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Bild</label>
               {!cameraForImage ? (
                 <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
                   <input
@@ -772,23 +761,21 @@ export default function ToGoPage() {
                         reader.readAsDataURL(file);
                       }
                     }}
-                    style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+                    style={{ padding: 8, fontSize: 13, borderRadius: 6, border: "1px solid #ddd" }}
                   />
                   <button
                     type="button"
                     onClick={() => setCameraForImage(true)}
                     style={{
-                      padding: "10px 16px",
+                      padding: "8px 12px",
                       background: "#E4002B",
                       color: "white",
                       border: "none",
                       borderRadius: 6,
                       fontWeight: 600,
                       cursor: "pointer",
-                      transition: "all 0.2s"
+                      fontSize: "0.9em"
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
                   >
                     📷 Ta kort
                   </button>
@@ -799,9 +786,9 @@ export default function ToGoPage() {
                     ref={imageCameraRef}
                     style={{
                       width: "100%",
-                      maxWidth: "400px",
+                      maxWidth: "350px",
                       borderRadius: 8,
-                      border: "3px solid #E4002B",
+                      border: "2px solid #E4002B",
                       marginBottom: 8
                     }}
                     autoPlay
@@ -823,7 +810,6 @@ export default function ToGoPage() {
                             compressImage(dataUrl, (compressed) => {
                               setNewImage(compressed);
                               setCameraForImage(false);
-                              // Stop camera
                               if (imageCameraStreamRef.current) {
                                 imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
                                 imageCameraStreamRef.current = null;
@@ -834,17 +820,15 @@ export default function ToGoPage() {
                       }}
                       style={{
                         flex: 1,
-                        padding: "10px",
+                        padding: "8px",
                         background: "#4CAF50",
                         color: "white",
                         border: "none",
                         borderRadius: 6,
                         fontWeight: 600,
                         cursor: "pointer",
-                        transition: "all 0.2s"
+                        fontSize: "0.9em"
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#45a049")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#4CAF50")}
                     >
                       ✓ Ta kort
                     </button>
@@ -859,29 +843,27 @@ export default function ToGoPage() {
                       }}
                       style={{
                         flex: 1,
-                        padding: "10px",
+                        padding: "8px",
                         background: "#999",
                         color: "white",
                         border: "none",
                         borderRadius: 6,
                         fontWeight: 600,
                         cursor: "pointer",
-                        transition: "all 0.2s"
+                        fontSize: "0.9em"
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#777")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#999")}
                     >
                       ✕ Avbryt
                     </button>
                   </div>
                 </div>
               )}
-              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Ladda upp eller ta en bild av produkten. Bilder komprimeras automatiskt.</div>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Kategori</label>
-              <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd", background: "white" }}>
+            {/* Kategori */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Kategori</label>
+              <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 6, border: "1px solid #ddd", background: "white" }}>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -890,13 +872,14 @@ export default function ToGoPage() {
               </select>
             </div>
 
+            {/* Spara och Avbryt - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => {
                   setModalOpen(false);
                   scanRef.current?.focus();
                 }}
-                style={{ padding: 12, flex: 1, background: "#ccc", color: "#333" }}
+                style={{ padding: 12, flex: 1, background: "#ccc", color: "#333", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer" }}
               >
                 Avbryt
               </button>
