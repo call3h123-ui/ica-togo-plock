@@ -486,7 +486,38 @@ export default function ToGoPage() {
               <div style={{ position: "absolute", top: "15%", bottom: "15%", right: "15%", width: 2, background: "#E4002B", opacity: 0.6 }} />
             </div>
           </div>
-          <p style={{ color: "#fff", marginTop: "clamp(12px, 3vw, 16px)", fontSize: "clamp(0.9em, 2vw, 1em)", textAlign: "center" }}>Rikta kameran mot streckkoden</p>
+          <p style={{ color: "#fff", marginTop: "clamp(12px, 3vw, 16px)", fontSize: "clamp(0.9em, 2vw, 1em)", textAlign: "center" }}>Rikta kameran mot streckkoden eller skriv EAN nedan</p>
+          
+          {/* Manual EAN input during camera */}
+          <input
+            value={scanValue}
+            onChange={(e) => setScanValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                const ean = (e.target as HTMLInputElement).value;
+                if (ean.trim()) {
+                  handleScanSubmit(ean);
+                  setScanValue("");
+                }
+              }
+            }}
+            placeholder="Eller mata in EAN här..."
+            autoFocus
+            style={{ 
+              marginTop: "clamp(12px, 3vw, 16px)",
+              width: "100%", 
+              maxWidth: 400,
+              padding: "clamp(10px, 2vw, 12px)", 
+              fontSize: "clamp(14px, 2vw, 16px)", 
+              borderRadius: 8, 
+              border: "2px solid #fff",
+              background: "rgba(255,255,255,0.95)",
+              textAlign: "center",
+              fontWeight: 500
+            }}
+          />
         </div>
       )}
 
