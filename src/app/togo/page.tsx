@@ -261,8 +261,8 @@ export default function ToGoPage() {
         // New product - create it
         await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
       } else {
-        // Product exists - update it with new details (image, brand, weight, name if changed)
-        await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null });
+        // Product exists - update it with new details (including category)
+        await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null, default_category_id: catId });
       }
       // For both new and existing, increment quantity
       await rpcIncrement(newEan, catId, newQty);

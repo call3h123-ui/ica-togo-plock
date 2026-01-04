@@ -85,12 +85,13 @@ export async function createProduct(payload: { ean: string; name: string; brand?
   }
 }
 
-export async function updateProduct(ean: string, payload: { name?: string; brand?: string | null; image_url?: string | null; weight?: string | null }) {
+export async function updateProduct(ean: string, payload: { name?: string; brand?: string | null; image_url?: string | null; weight?: string | null; default_category_id?: string | null }) {
   const updateObj: any = {};
   if (payload.name != null) updateObj.name = payload.name;
   if (payload.brand != null) updateObj.brand = payload.brand;
   if (payload.image_url != null) updateObj.image_url = payload.image_url;
   if (payload.weight != null) updateObj.weight = payload.weight;
+  if (payload.default_category_id != null) updateObj.default_category_id = payload.default_category_id;
 
   if (Object.keys(updateObj).length === 0) return; // Nothing to update
 
