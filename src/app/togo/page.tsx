@@ -76,6 +76,7 @@ export default function ToGoPage() {
   const [cameraForImage, setCameraForImage] = useState(false);
   const imageCameraRef = useRef<HTMLVideoElement | null>(null);
   const imageCameraStreamRef = useRef<MediaStream | null>(null);
+  const scanningRef = useRef(false); // Track if actively scanning to prevent duplicates
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -154,10 +155,20 @@ export default function ToGoPage() {
   }, [cameraForImage]);
 
   async function handleScanSubmit(value: string) {
+    // Prevent duplicate scans - if already scanning, ignore
+    if (scanningRef.current) {
+      console.log("Scan in progress, ignoring duplicate");
+      return;
+    }
+
     try {
+      scanningRef.current = true; // Mark as scanning
       const ean = cleanEan(value);
       console.log("handleScanSubmit -> ean:", ean);
-      if (!ean) return;
+      if (!ean) {
+        scanningRef.current = false;
+        return;
+      }
 
       // Rensa scanValue direkt - användaren kan scanna nästa vara direkt
       setScanValue("");
@@ -221,6 +232,7 @@ export default function ToGoPage() {
           console.log("Kunde inte hämta produktinfo från API:", e);
         }
         setLoadingProduct(false);
+        scanningRef.current = false; // Reset scanning flag
         return;
       }
 
@@ -237,7 +249,9 @@ export default function ToGoPage() {
       setNewQty(1); // Reset quantity for new addition
 
       scanRef.current?.focus();
+      scanningRef.current = false; // Reset scanning flag
     } catch (err) {
+      scanningRef.current = false; // Reset on error
       console.error("handleScanSubmit error:", err);
       let msg = "Okänt fel vid sökning";
       if (err instanceof Error) msg = err.message;
@@ -427,12 +441,16 @@ export default function ToGoPage() {
 
       console.log("Barcode scanner started - scanning for EAN codes...");
 
-      await reader.decodeFromVideoElement(videoRef.current, (result, err) => {
+      // Continuously scan, but handleScanSubmit prevents duplicates with scanningRef
+      const scannerPromise = reader.decodeFromVideoElement(videoRef.current, (result, err) => {
         if (result) {
           console.log("✓ Barcode detected:", result.getText());
           handleScanSubmit(result.getText());
         }
       });
+
+      // Store the scanner promise so we can potentially cancel it
+      // For now, let the scan run until camera is stopped
     } catch (err) {
       console.error("Camera error:", err);
       let errorMsg = "Okänt fel";
@@ -452,6 +470,7 @@ export default function ToGoPage() {
 
   async function stopCamera() {
     setCamOn(false);
+    scanningRef.current = false; // Stop scanning when camera is stopped
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
@@ -1061,11 +1080,15 @@ export default function ToGoPage() {
               <button
                 onClick={() => {
                   setModalOpen(false);
+                  // Reset scanning flag when closing modal
+                  scanningRef.current = false;
                   scanRef.current?.focus();
                 }}
-                style={{ padding: 12, width: "100%", background: "#ccc", color: "#333", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer" }}
+                style={{ padding: 14, width: "100%", background: "#E4002B", color: "white", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 16, transition: "all 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
-                Stäng
+                ✕ Stäng modal
               </button>
             </div>
 
