@@ -83,6 +83,9 @@ export default function ToGoPage() {
   const [editingCatName, setEditingCatName] = useState("");
   const [newCatName, setNewCatName] = useState("");
 
+  // Redigeringsfält visibility
+  const [expandedEditFields, setExpandedEditFields] = useState(false);
+
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
 
   async function refresh() {
@@ -178,6 +181,7 @@ export default function ToGoPage() {
       if (!product) {
         console.log("handleScanSubmit -> product not found, opening modal");
         setModalOpen(true);
+        setExpandedEditFields(false);
         setNewEan(ean);
         setNewName("");
         setNewBrand("");
@@ -214,6 +218,7 @@ export default function ToGoPage() {
       // Product exists - open modal to let user add quantity
       console.log("handleScanSubmit -> product exists, opening modal with existing product");
       setModalOpen(true);
+      setExpandedEditFields(false);
       setNewEan(ean);
       setNewName(product.name);
       setNewBrand(product.brand || "");
@@ -634,7 +639,7 @@ export default function ToGoPage() {
               </div>
             )}
 
-            {/* Produktinfo-rad: Bild + Info */}
+            {/* Produktinfo-rad: Bild + Info + Edit button */}
             <div style={{ display: "flex", gap: "clamp(12px, 3vw, 16px)", marginBottom: 16, alignItems: "flex-start" }}>
               {/* Liten produktbild */}
               {newImage && (
@@ -652,7 +657,7 @@ export default function ToGoPage() {
                 </div>
               )}
               
-              {/* Produktinfo: namn, märke, vikt */}
+              {/* Produktinfo: namn, märke, vikt, kategori */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "clamp(1.05em, 2vw, 1.15em)", fontWeight: 700, color: "#222", marginBottom: 4, wordBreak: "break-word" }}>
                   {newName || "Produktnamn"}
@@ -667,7 +672,32 @@ export default function ToGoPage() {
                     {newWeight}
                   </div>
                 )}
+                {newCat && categories.find(c => c.id === newCat) && (
+                  <div style={{ fontSize: "clamp(0.85em, 1.5vw, 0.9em)", color: "#0066cc", marginBottom: 4, fontWeight: 500 }}>
+                    Kategori: {categories.find(c => c.id === newCat)?.name}
+                  </div>
+                )}
               </div>
+
+              {/* Kugghjul-knapp för att visa/dölja redigeringsfält */}
+              <button
+                type="button"
+                onClick={() => setExpandedEditFields(!expandedEditFields)}
+                style={{
+                  flex: "0 0 auto",
+                  background: expandedEditFields ? "#E4002B" : "#ddd",
+                  color: expandedEditFields ? "white" : "#333",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "8px 10px",
+                  cursor: "pointer",
+                  fontSize: "1.2em",
+                  transition: "all 0.2s"
+                }}
+                title="Redigera produktinfo"
+              >
+                ⚙️
+              </button>
             </div>
 
             {/* Antalet - prominent */}
@@ -718,168 +748,172 @@ export default function ToGoPage() {
               </button>
             </div>
 
-            {/* Redigerbara fält - mindre och lite mer kompakt */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Produktnamn *</label>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="T.ex. Mellanmjölk 1L"
-                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Varumärke</label>
-              <input
-                value={newBrand}
-                onChange={(e) => setNewBrand(e.target.value)}
-                placeholder="T.ex. Arla"
-                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Vikt</label>
-              <input
-                value={newWeight ?? ""}
-                onChange={(e) => setNewWeight(e.target.value ? e.target.value : null)}
-                placeholder="T.ex. 1kg"
-                style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
-              />
-            </div>
-
-            {/* Bild-upload */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Bild</label>
-              {!cameraForImage ? (
-                <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+            {/* Redigerbara fält - döljas bakom kugghjul-knapp */}
+            {expandedEditFields && (
+              <div style={{ marginBottom: 12, background: "#f9f9f9", padding: 12, borderRadius: 8, border: "1px solid #e0e0e0" }}>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Produktnamn *</label>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
-                          const dataUrl = evt.target?.result as string;
-                          compressImage(dataUrl, (compressed) => {
-                            setNewImage(compressed);
-                          });
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    style={{ padding: 8, fontSize: 13, borderRadius: 6, border: "1px solid #ddd" }}
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="T.ex. Mellanmjölk 1L"
+                    style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setCameraForImage(true)}
-                    style={{
-                      padding: "8px 12px",
-                      background: "#E4002B",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontSize: "0.9em"
-                    }}
-                  >
-                    📷 Ta kort
-                  </button>
                 </div>
-              ) : (
-                <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
-                  <video
-                    ref={imageCameraRef}
-                    style={{
-                      width: "100%",
-                      maxWidth: "350px",
-                      borderRadius: 8,
-                      border: "2px solid #E4002B",
-                      marginBottom: 8
-                    }}
-                    autoPlay
-                    playsInline
-                  />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const video = imageCameraRef.current;
-                        if (video) {
-                          const canvas = document.createElement("canvas");
-                          canvas.width = video.videoWidth;
-                          canvas.height = video.videoHeight;
-                          const ctx = canvas.getContext("2d");
-                          if (ctx) {
-                            ctx.drawImage(video, 0, 0);
-                            const dataUrl = canvas.toDataURL("image/jpeg");
-                            compressImage(dataUrl, (compressed) => {
-                              setNewImage(compressed);
-                              setCameraForImage(false);
-                              if (imageCameraStreamRef.current) {
-                                imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
-                                imageCameraStreamRef.current = null;
-                              }
-                            });
-                          }
-                        }
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        background: "#4CAF50",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontSize: "0.9em"
-                      }}
-                    >
-                      ✓ Ta kort
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCameraForImage(false);
-                        if (imageCameraStreamRef.current) {
-                          imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
-                          imageCameraStreamRef.current = null;
-                        }
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        background: "#999",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontSize: "0.9em"
-                      }}
-                    >
-                      ✕ Avbryt
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Kategori */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Kategori</label>
-              <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 6, border: "1px solid #ddd", background: "white" }}>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Varumärke</label>
+                  <input
+                    value={newBrand}
+                    onChange={(e) => setNewBrand(e.target.value)}
+                    placeholder="T.ex. Arla"
+                    style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Vikt</label>
+                  <input
+                    value={newWeight ?? ""}
+                    onChange={(e) => setNewWeight(e.target.value ? e.target.value : null)}
+                    placeholder="T.ex. 1kg"
+                    style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
+                  />
+                </div>
+
+                {/* Bild-upload */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Bild</label>
+                  {!cameraForImage ? (
+                    <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              const dataUrl = evt.target?.result as string;
+                              compressImage(dataUrl, (compressed) => {
+                                setNewImage(compressed);
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        style={{ padding: 8, fontSize: 13, borderRadius: 6, border: "1px solid #ddd" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCameraForImage(true)}
+                        style={{
+                          padding: "8px 12px",
+                          background: "#E4002B",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontSize: "0.9em"
+                        }}
+                      >
+                        📷 Ta kort
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                      <video
+                        ref={imageCameraRef}
+                        style={{
+                          width: "100%",
+                          maxWidth: "350px",
+                          borderRadius: 8,
+                          border: "2px solid #E4002B",
+                          marginBottom: 8
+                        }}
+                        autoPlay
+                        playsInline
+                      />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const video = imageCameraRef.current;
+                            if (video) {
+                              const canvas = document.createElement("canvas");
+                              canvas.width = video.videoWidth;
+                              canvas.height = video.videoHeight;
+                              const ctx = canvas.getContext("2d");
+                              if (ctx) {
+                                ctx.drawImage(video, 0, 0);
+                                const dataUrl = canvas.toDataURL("image/jpeg");
+                                compressImage(dataUrl, (compressed) => {
+                                  setNewImage(compressed);
+                                  setCameraForImage(false);
+                                  if (imageCameraStreamRef.current) {
+                                    imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+                                    imageCameraStreamRef.current = null;
+                                  }
+                                });
+                              }
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            background: "#4CAF50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: "0.9em"
+                          }}
+                        >
+                          ✓ Ta kort
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCameraForImage(false);
+                            if (imageCameraStreamRef.current) {
+                              imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+                              imageCameraStreamRef.current = null;
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            background: "#999",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: "0.9em"
+                          }}
+                        >
+                          ✕ Avbryt
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Kategori */}
+                <div style={{ marginBottom: 0 }}>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Kategori</label>
+                  <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 6, border: "1px solid #ddd", background: "white" }}>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             {/* Avbryt - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
