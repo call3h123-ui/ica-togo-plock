@@ -544,9 +544,10 @@ export default function ToGoPage() {
               }}
               placeholder="Scanna EAN"
               type="tel"
-              inputMode="numeric"
+              inputMode={scannerMode ? "none" : "numeric"}
               autoComplete="off"
               pattern="[0-9]*"
+              readOnly={scannerMode}
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
           </div>
