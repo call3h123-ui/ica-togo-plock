@@ -295,35 +295,49 @@ export default function ToGoPage() {
         return;
       }
 
-      // Start camera stream with better focus settings
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      // Start camera stream with aggressive auto-focus
+      const constraints: any = {
         video: { 
           facingMode: { ideal: "environment" },
-          focusMode: { ideal: "continuous" } as any,
-          focusDistance: 0,
-          torch: false
-        } as any
-      });
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
 
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       videoRef.current.srcObject = stream;
+      
+      // Try to enable autofocus on the video track
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack?.getCapabilities) {
+        const capabilities = videoTrack.getCapabilities() as any;
+        if (capabilities.focusMode) {
+          await videoTrack.applyConstraints({
+            advanced: [{ focusMode: ['continuous', 'auto'] }] as any
+          }).catch(() => {
+            // Focus mode might not be supported, continue anyway
+          });
+        }
+      }
+
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
-      // Start barcode reader with a delay to ensure video is playing
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Wait longer for camera to initialize and focus
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       readerRef.current = new BrowserMultiFormatReader();
       const reader = readerRef.current;
 
-      // Configure hints for better barcode detection
+      // Configure hints for EAN detection
       const hints = new Map();
-      hints.set(0, [1, 12, 13]); // BarcodeFormat: CODE_128, EAN_13, EAN_8
+      hints.set(1, [12, 13]); // BarcodeFormat.EAN_13=13, EAN_8=12
       reader.setHints(hints);
 
-      console.log("Barcode scanner started, waiting for codes...");
+      console.log("Barcode scanner started - scanning for EAN codes...");
 
       await reader.decodeFromVideoElement(videoRef.current, (result, err) => {
         if (result) {
-          console.log("Barcode detected:", result.getText());
+          console.log("✓ Barcode detected:", result.getText());
           handleScanSubmit(result.getText());
         }
       });
