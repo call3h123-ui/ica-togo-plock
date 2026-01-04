@@ -77,6 +77,8 @@ export default function ToGoPage() {
   const imageCameraRef = useRef<HTMLVideoElement | null>(null);
   const imageCameraStreamRef = useRef<MediaStream | null>(null);
   const scanningRef = useRef(false); // Track if actively scanning to prevent duplicates
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -162,6 +164,11 @@ export default function ToGoPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalOpen]);
+
+  // Load available cameras on mount
+  useEffect(() => {
+    loadAvailableCameras();
+  }, []);
 
   async function handleScanSubmit(value: string) {
     // Prevent duplicate scans - if already scanning, ignore
@@ -361,7 +368,26 @@ export default function ToGoPage() {
     }
   }
 
-  async function startCamera() {
+  async function loadAvailableCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoCameras = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(videoCameras);
+      console.log(`📹 Found ${videoCameras.length} camera(s):`);
+      videoCameras.forEach((cam, idx) => {
+        console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (ID: ${cam.deviceId.substring(0, 8)}...)`);
+      });
+      
+      // Set the first camera as default if not already selected
+      if (!selectedCameraId && videoCameras.length > 0) {
+        setSelectedCameraId(videoCameras[0].deviceId);
+      }
+    } catch (e) {
+      console.log("Could not enumerate devices", e);
+    }
+  }
+
+  async function startCamera(deviceId?: string) {
     setCamOn(true);
 
     // Wait for React to render the video element
@@ -375,8 +401,13 @@ export default function ToGoPage() {
         return;
       }
 
-      // Step 1: Find the best camera to use (prefer rear/back camera on Android)
-      let selectedDeviceId: string | undefined = undefined;
+      // Load cameras if not already loaded
+      if (availableCameras.length === 0) {
+        await loadAvailableCameras();
+      }
+
+      // Step 1: Use provided deviceId or the selected one
+      let selectedDeviceId: string | undefined = deviceId || selectedCameraId;
       
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -581,19 +612,32 @@ export default function ToGoPage() {
     
     console.log("🔍 Tap-to-focus triggered");
     
-    // Try to apply continuous autofocus
-    if (typeof videoTrack.getCapabilities === 'function') {
-      try {
-        videoTrack.applyConstraints({
-          advanced: [{ focusMode: 'auto' } as any]
-        }).then(() => {
-          console.log("✓ Auto focus triggered");
-        }).catch(e => {
-          console.log("Could not trigger auto focus:", e);
-        });
-      } catch (e) {
-        console.log("Error in tap to focus:", e);
+    // Try to apply autofocus with multiple strategies
+    if (typeof videoTrack.applyConstraints === 'function') {
+      const focusStrategies = [
+        { focusMode: 'continuous' },
+        { focusMode: 'auto' },
+        { focusDistance: 0 }
+      ];
+      
+      let applied = false;
+      for (const strategy of focusStrategies) {
+        if (applied) break;
+        try {
+          videoTrack.applyConstraints({
+            advanced: [strategy as any]
+          }).then(() => {
+            console.log("✓ Focus applied:", strategy);
+          }).catch(e => {
+            console.log("Focus strategy failed:", strategy, e);
+          });
+          applied = true;
+        } catch (e) {
+          console.log("Error applying focus:", e);
+        }
       }
+    } else {
+      console.log("⚠️ applyConstraints not supported on this device");
     }
   }
 
@@ -714,7 +758,7 @@ export default function ToGoPage() {
         />
 
         {!camOn ? (
-          <button onClick={startCamera} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
+          <button onClick={() => startCamera()} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
             📷 Kamera
           </button>
         ) : (
@@ -746,6 +790,51 @@ export default function ToGoPage() {
 
       {camOn && !modalOpen && (
         <div style={{ marginBottom: "clamp(16px, 4vw, 24px)", background: "#000", padding: "clamp(16px, 4vw, 20px)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+          {/* Camera Selector */}
+          {availableCameras.length > 1 && (
+            <div style={{ width: "100%", marginBottom: "clamp(12px, 2vw, 16px)", display: "flex", gap: "clamp(8px, 1vw, 12px)", flexWrap: "wrap", alignItems: "center", background: "rgba(255,255,255,0.1)", padding: "clamp(8px, 1.5vw, 12px)", borderRadius: 8 }}>
+              <label style={{ color: "#fff", fontSize: "clamp(0.85em, 1.5vw, 0.95em)", fontWeight: 500, whiteSpace: "nowrap" }}>Välja kamera:</label>
+              <select 
+                value={selectedCameraId} 
+                onChange={(e) => setSelectedCameraId(e.target.value)}
+                style={{ 
+                  flex: 1, 
+                  minWidth: "150px",
+                  padding: "clamp(6px, 1vw, 8px) clamp(8px, 1vw, 12px)", 
+                  fontSize: "clamp(0.85em, 1.5vw, 0.95em)", 
+                  borderRadius: 6, 
+                  border: "1px solid #E4002B",
+                  background: "#fff",
+                  cursor: "pointer"
+                }}
+              >
+                {availableCameras.map((camera) => (
+                  <option key={camera.deviceId} value={camera.deviceId}>
+                    {camera.label || `Camera (${camera.deviceId.substring(0, 5)}...)`}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => startCamera(selectedCameraId)}
+                style={{
+                  padding: "clamp(6px, 1vw, 8px) clamp(8px, 1vw, 12px)",
+                  fontSize: "clamp(0.8em, 1.5vw, 0.9em)",
+                  background: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  whiteSpace: "nowrap"
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#45a049")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#4CAF50")}
+              >
+                🔄 Byt kamera
+              </button>
+            </div>
+          )}
+          
           <div style={{ position: "relative", width: "100%", maxWidth: 600, aspectRatio: "16 / 9", overflow: "hidden", borderRadius: 10 }}>
             <video 
               ref={videoRef} 
@@ -765,7 +854,7 @@ export default function ToGoPage() {
               <div style={{ position: "absolute", top: "15%", bottom: "15%", right: "15%", width: 2, background: "#E4002B", opacity: 0.6 }} />
             </div>
           </div>
-          <p style={{ color: "#fff", marginTop: "clamp(12px, 3vw, 16px)", fontSize: "clamp(0.9em, 2vw, 1em)", textAlign: "center" }}>Rikta kameran mot streckkoden eller skriv EAN nedan</p>
+          <p style={{ color: "#fff", marginTop: "clamp(12px, 3vw, 16px)", fontSize: "clamp(0.9em, 2vw, 1em)", textAlign: "center" }}>👆 Tryck på videon för att fokusera<br/>Rikta kameran mot streckkoden eller skriv EAN nedan</p>
           
           {/* Manual EAN input during camera */}
           <input
@@ -888,7 +977,7 @@ export default function ToGoPage() {
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
             {!camOn ? (
-              <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
+              <button onClick={() => startCamera()} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
                 📷
               </button>
             ) : (
