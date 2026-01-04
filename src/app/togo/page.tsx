@@ -352,35 +352,70 @@ export default function ToGoPage() {
         return;
       }
 
-      // Start camera stream with aggressive auto-focus
+      // Request camera with aggressive focus settings for Android
       const constraints: any = {
         video: { 
           facingMode: { ideal: "environment" },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
+          // Focus settings that work better on Android
+          advanced: [
+            { 
+              focusMode: "continuous",
+              focusDistance: 0
+            },
+            {
+              torch: false
+            }
+          ]
         }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       videoRef.current.srcObject = stream;
       
-      // Try to enable autofocus on the video track
+      // Get video track for additional focus control
       const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack?.getCapabilities) {
-        const capabilities = videoTrack.getCapabilities() as any;
-        if (capabilities.focusMode) {
-          await videoTrack.applyConstraints({
-            advanced: [{ focusMode: ['continuous', 'auto'] }] as any
-          }).catch(() => {
-            // Focus mode might not be supported, continue anyway
-          });
+      
+      if (videoTrack) {
+        // Get capabilities to see what's supported
+        if (videoTrack.getCapabilities) {
+          const capabilities = videoTrack.getCapabilities() as any;
+          
+          // Try multiple focus strategies
+          const focusStrategies = [
+            // Strategy 1: Continuous autofocus
+            { focusMode: ['continuous', 'auto'] },
+            // Strategy 2: Auto focus with 0 distance (macro)
+            { focusMode: 'auto', focusDistance: 0 },
+            // Strategy 3: Continuous focus
+            { focusMode: 'continuous' }
+          ];
+          
+          for (const strategy of focusStrategies) {
+            try {
+              await videoTrack.applyConstraints({
+                advanced: [strategy as any]
+              });
+              console.log("✓ Focus strategy applied:", strategy);
+              break; // Stop if successful
+            } catch (e) {
+              console.log("Focus strategy failed, trying next:", strategy);
+            }
+          }
         }
       }
 
+      // Start video playback
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
-      // Wait longer for camera to initialize and focus
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Give more time for autofocus on Android
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Force focus by simulating user interaction (helps on some Android devices)
+      if (videoRef.current) {
+        videoRef.current.focus();
+      }
 
       readerRef.current = new BrowserMultiFormatReader();
       const reader = readerRef.current;
