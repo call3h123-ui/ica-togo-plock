@@ -284,6 +284,9 @@ export default function ToGoPage() {
   async function startCamera() {
     setCamOn(true);
 
+    // Wait for React to render the video element
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
       // Get video element
       if (!videoRef.current) {
