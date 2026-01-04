@@ -86,6 +86,9 @@ export default function ToGoPage() {
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
 
+  // Scanner mode: when enabled, keyboard won't auto-focus after scan
+  const [scannerMode, setScannerMode] = useState(true);
+
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
 
   async function refresh() {
@@ -247,22 +250,54 @@ export default function ToGoPage() {
   }
 
   async function saveNewProduct() {
-    if (!newEan) return;
     if (!newName.trim()) return alert("Skriv produktnamn.");
 
     const catId = newCat || defaultCatId;
-      try {
-      // Check if product already exists
-      const existing = await ensureProduct(newEan);
-      if (!existing) {
-        // New product - create it
-        await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+    try {
+      // If there's an EAN, handle as usual (with product lookup/creation)
+      if (newEan) {
+        // Check if product already exists
+        const existing = await ensureProduct(newEan);
+        if (!existing) {
+          // New product - create it
+          await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+        } else {
+          // Product exists - update it with new details (including category)
+          await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null, default_category_id: catId });
+        }
+        // For both new and existing, increment quantity
+        await rpcIncrement(newEan, catId, newQty);
       } else {
-        // Product exists - update it with new details (including category)
-        await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null, default_category_id: catId });
+        // No EAN - create a manual order item without product database entry
+        // This allows adding items without scanning
+        const { data, error } = await supabase
+          .from("order_items")
+          .insert([
+            {
+              ean: "MANUAL_" + Date.now(), // Temporary unique identifier
+              qty: newQty,
+              category_id: catId,
+              is_picked: false,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select();
+
+        if (error) throw error;
+
+        // If insert succeeded, we need to create or get a product for display
+        // Create a product with special "MANUAL_" prefix
+        const manualEan = "MANUAL_" + Date.now();
+        await createProduct({ 
+          ean: manualEan, 
+          name: newName.trim(), 
+          brand: newBrand.trim() || null, 
+          default_category_id: catId, 
+          image_url: newImage || null, 
+          weight: newWeight ?? null 
+        });
       }
-      // For both new and existing, increment quantity
-      await rpcIncrement(newEan, catId, newQty);
+
       await refresh();
 
       // Reset form but keep modal open for next scan
@@ -274,11 +309,13 @@ export default function ToGoPage() {
       setNewWeight(null);
       setScanValue(""); // Töm EAN-fältet
       
-      // Fokusera på EAN-fältet igen så nästa scan går dit
-      // (inte i varumärke eller annat fält)
-      setTimeout(() => {
-        scanRef.current?.focus();
-      }, 100);
+      // Only auto-focus if NOT in scanner mode
+      // In scanner mode, keyboard shouldn't pop up between scans
+      if (!scannerMode) {
+        setTimeout(() => {
+          scanRef.current?.focus();
+        }, 100);
+      }
     } catch (err) {
       console.error("saveNewProduct error:", err);
       let msg = "Fel vid sparande";
@@ -411,7 +448,30 @@ export default function ToGoPage() {
           <h1 style={{ margin: 0, marginBottom: "4px" }}>📦 ToGo – Skanna & beställ</h1>
           <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
         </div>
-        <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)" }}>
+        <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button 
+            onClick={() => setScannerMode(!scannerMode)}
+            title={scannerMode ? "Scanner-läge: Tangentbordet kommer inte visa sig mellan skanningar" : "Manual-läge: Tangentbordet syns för manuell inmatning"}
+            style={{ 
+              padding: "10px 16px", 
+              background: scannerMode ? "#E4002B" : "#f0f0f0", 
+              color: scannerMode ? "white" : "#333", 
+              border: "none",
+              borderRadius: 8, 
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "clamp(0.85em, 2vw, 0.95em)"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            {scannerMode ? "📱 Scanner-läge" : "⌨️ Manual-läge"}
+          </button>
           <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
@@ -484,6 +544,25 @@ export default function ToGoPage() {
             ✕ Stäng
           </button>
         )}
+
+        <button 
+          onClick={() => {
+            setModalOpen(true);
+            setNewEan(null);
+            setNewName("");
+            setNewBrand("");
+            setNewImage("");
+            setNewWeight(null);
+            setNewQty(1);
+            const savedCatId = typeof window !== "undefined" ? localStorage.getItem("lastSelectedCatId") : null;
+            setNewCat(savedCatId && categories.find(c => c.id === savedCatId) ? savedCatId : (categories[0]?.id || ""));
+          }}
+          style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "100px", background: "#E4002B", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+        >
+          ➕ Manuell artikel
+        </button>
       </div>
 
       {camOn && !modalOpen && (
