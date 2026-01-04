@@ -468,32 +468,69 @@ export default function ToGoPage() {
           console.log("📋 Camera capabilities:", {
             focusMode: capabilities.focusMode,
             focusDistance: capabilities.focusDistance,
-            torch: capabilities.torch
+            torch: capabilities.torch,
+            whiteBalanceMode: capabilities.whiteBalanceMode
           });
           
-          // Try multiple focus strategies in order of aggressiveness
-          const focusStrategies = [
-            // Strategy 1: Manual focus at distance 0 (macro/close)
-            { focusMode: 'auto', focusDistance: 0 },
-            // Strategy 2: Continuous autofocus
-            { focusMode: 'continuous', focusDistance: 0 },
-            // Strategy 3: Auto focus with default distance
-            { focusMode: 'auto' },
-            // Strategy 4: Just continuous
-            { focusMode: 'continuous' }
-          ];
-          
           let focusApplied = false;
+          
+          // Get focus distance range if available
+          const focusDistanceRange = capabilities.focusDistance;
+          let focusDistances: number[] = [0];
+          
+          if (focusDistanceRange) {
+            if (Array.isArray(focusDistanceRange)) {
+              // It's a range [min, max]
+              const [min, max] = focusDistanceRange;
+              console.log(`focusDistance range: ${min} to ${max}`);
+              // Try values from very close to medium distance
+              focusDistances = [min, 1, 5, 10, 20, 50, max].filter(v => v >= min && v <= max);
+            } else if (focusDistanceRange.min !== undefined && focusDistanceRange.max !== undefined) {
+              // It's an object with min/max
+              const min = focusDistanceRange.min;
+              const max = focusDistanceRange.max;
+              console.log(`focusDistance range: ${min} to ${max}`);
+              focusDistances = [min, 1, 5, 10, 20, 50, max].filter(v => v >= min && v <= max);
+            }
+          }
+          
+          // Try multiple focus strategies in order of aggressiveness
+          const focusStrategies: any[] = [];
+          
+          // Add strategies for each focus distance
+          focusDistances.forEach(distance => {
+            focusStrategies.push({ focusMode: 'auto', focusDistance: distance });
+            focusStrategies.push({ focusMode: 'continuous', focusDistance: distance });
+          });
+          
+          // Add focus mode only strategies
+          focusStrategies.push({ focusMode: 'auto' });
+          focusStrategies.push({ focusMode: 'continuous' });
+          
+          // Try torch for better lighting
+          if (capabilities.torch && capabilities.torch.includes('on')) {
+            console.log("💡 Torch available, enabling...");
+            try {
+              await videoTrack.applyConstraints({
+                advanced: [{ torch: true } as any]
+              });
+              console.log("✓ Torch enabled");
+            } catch (e) {
+              console.log("⚠️ Could not enable torch:", e);
+            }
+          }
+          
+          // Try each focus strategy
           for (const strategy of focusStrategies) {
             try {
               await videoTrack.applyConstraints({
-                advanced: [strategy as any]
+                advanced: [strategy]
               });
               console.log("✓ Focus strategy applied:", strategy);
               focusApplied = true;
               break; // Stop if successful
             } catch (e) {
-              console.log("⚠️ Focus strategy failed, trying next:", strategy, e);
+              // Continue to next strategy
             }
           }
           
@@ -509,8 +546,14 @@ export default function ToGoPage() {
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
       // Give more time for autofocus to kick in on Android
-      console.log("⏳ Waiting for autofocus (2 seconds)...");
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log("⏳ Waiting for autofocus (3 seconds)...");
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Try to trigger focus manually by resizing/refreshing
+      if (videoRef.current) {
+        videoRef.current.style.filter = 'brightness(1)';
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
 
       console.log("✓ Camera ready, starting barcode detection");
 
