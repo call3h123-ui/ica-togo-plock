@@ -224,19 +224,20 @@ export default function PlockPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "clamp(12px, 3vw, 12px)", flexWrap: "wrap", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)" }}>
-        <div></div>
-        <button onClick={() => printPickList(todo, categories)} title="Skriv ut plocklista" style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "1.3em", background: "none", border: "none", cursor: "pointer" }}>
-          🖨️
-        </button>
-        <button onClick={clearPicked} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", minWidth: "120px" }}>
-          🗑️ Rensa plockade
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "clamp(12px, 3vw, 12px)", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)" }}>
+        <button onClick={() => setMailOpen(true)} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", minWidth: "120px" }}>
+          📧 Maila
         </button>
       </div>
 
       <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
-        <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", display: "flex", alignItems: "center", gap: 8 }}>
-          📋 Att plocka <span style={{ background: "#E4002B", color: "white", borderRadius: 20, padding: "4px 12px", fontSize: "clamp(0.7em, 1.5vw, 0.8em)", fontWeight: 700 }}>{todo.length}</span>
+        <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            📋 Att plocka <span style={{ background: "#E4002B", color: "white", borderRadius: 20, padding: "4px 12px", fontSize: "clamp(0.7em, 1.5vw, 0.8em)", fontWeight: 700 }}>{todo.length}</span>
+          </span>
+          <button onClick={() => printPickList(todo, categories)} title="Skriv ut plocklista" style={{ padding: "clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)", fontSize: "1.2em", background: "none", border: "none", cursor: "pointer" }}>
+            🖨️
+          </button>
         </h2>
         {todo.length === 0 ? (
           <div style={{ background: "#f9f9f9", padding: "clamp(16px, 4vw, 24px)", borderRadius: 12, textAlign: "center", color: "#999" }}>
@@ -260,8 +261,11 @@ export default function PlockPage() {
 
       {picked.length > 0 && (
         <div style={{ marginTop: "clamp(16px, 4vw, 24px)" }}>
-          <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", opacity: 0.7 }}>
-            ✓ Plockat
+          <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", opacity: 0.7, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>✓ Plockat</span>
+            <button onClick={clearPicked} style={{ padding: "clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", background: "#ccc", color: "#333", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+              🗑️ Rensa
+            </button>
           </h2>
           {[...pickedGroups.entries()].map(([catId, items]) => (
             <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)", opacity: 0.65 }}>
