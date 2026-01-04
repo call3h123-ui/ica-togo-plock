@@ -775,16 +775,6 @@ export default function ToGoPage() {
           style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
         />
 
-        {!camOn ? (
-          <button onClick={() => startCamera()} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
-            📷 Kamera
-          </button>
-        ) : (
-          <button onClick={stopCamera} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", background: "#666", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
-            ✕ Stäng
-          </button>
-        )}
-
         <button 
           onClick={() => {
             setModalOpen(true);
@@ -805,96 +795,6 @@ export default function ToGoPage() {
           ➕ Manuell artikel
         </button>
       </div>
-
-      {camOn && !modalOpen && (
-        <div style={{ marginBottom: "clamp(16px, 4vw, 24px)", background: "#000", padding: "clamp(16px, 4vw, 20px)", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
-          {/* Camera Selector */}
-          {availableCameras.length > 1 && (
-            <div style={{ width: "100%", marginBottom: "clamp(12px, 2vw, 16px)", display: "flex", gap: "clamp(8px, 1vw, 12px)", flexWrap: "wrap", alignItems: "center", background: "rgba(255,255,255,0.1)", padding: "clamp(8px, 1.5vw, 12px)", borderRadius: 8 }}>
-              <label style={{ color: "#fff", fontSize: "clamp(0.85em, 1.5vw, 0.95em)", fontWeight: 500, whiteSpace: "nowrap" }}>Välja kamera:</label>
-              <select 
-                value={selectedCameraId} 
-                onChange={(e) => {
-                  const newDeviceId = e.target.value;
-                  setSelectedCameraId(newDeviceId);
-                  switchCamera(newDeviceId);
-                }}
-                style={{ 
-                  flex: 1, 
-                  minWidth: "150px",
-                  padding: "clamp(6px, 1vw, 8px) clamp(8px, 1vw, 12px)", 
-                  fontSize: "clamp(0.85em, 1.5vw, 0.95em)", 
-                  borderRadius: 6, 
-                  border: "1px solid #E4002B",
-                  background: "#fff",
-                  cursor: "pointer"
-                }}
-              >
-                {availableCameras.map((camera) => (
-                  <option key={camera.deviceId} value={camera.deviceId}>
-                    {camera.label || `Camera (${camera.deviceId.substring(0, 5)}...)`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          
-          <div style={{ position: "relative", width: "100%", maxWidth: 600, aspectRatio: "16 / 9", overflow: "hidden", borderRadius: 10 }}>
-            <video 
-              ref={videoRef} 
-              autoPlay={true}
-              playsInline={true}
-              onClick={handleTapToFocus}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} 
-              muted 
-            />
-            {/* Scanner frame overlay */}
-            <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
-              {/* Top bar */}
-              <div style={{ position: "absolute", top: "25%", left: 0, right: 0, height: 4, background: "#E4002B", boxShadow: "0 0 20px rgba(228, 0, 43, 0.8)" }} />
-              {/* Left line */}
-              <div style={{ position: "absolute", top: "15%", bottom: "15%", left: "15%", width: 2, background: "#E4002B", opacity: 0.6 }} />
-              {/* Right line */}
-              <div style={{ position: "absolute", top: "15%", bottom: "15%", right: "15%", width: 2, background: "#E4002B", opacity: 0.6 }} />
-            </div>
-          </div>
-          <p style={{ color: "#fff", marginTop: "clamp(12px, 3vw, 16px)", fontSize: "clamp(0.9em, 2vw, 1em)", textAlign: "center" }}>👆 Tryck på videon för att fokusera<br/>Rikta kameran mot streckkoden eller skriv EAN nedan</p>
-          
-          {/* Manual EAN input during camera */}
-          <input
-            value={scanValue}
-            onChange={(e) => setScanValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                const ean = (e.target as HTMLInputElement).value;
-                if (ean.trim()) {
-                  handleScanSubmit(ean);
-                  setScanValue("");
-                }
-              }
-            }}
-            placeholder="Eller mata in EAN här..."
-            autoFocus
-            style={{ 
-              marginTop: "clamp(12px, 3vw, 16px)",
-              width: "100%", 
-              maxWidth: 400,
-              padding: "clamp(10px, 2vw, 12px)", 
-              fontSize: "clamp(14px, 2vw, 16px)", 
-              borderRadius: 8, 
-              border: "2px solid #fff",
-              background: "rgba(255,255,255,0.95)",
-              textAlign: "center",
-              fontWeight: 500
-            }}
-          />
-          <div style={{ marginTop: "clamp(12px, 2vw, 16px)", color: "#ccc", fontSize: "clamp(0.8em, 1.5vw, 0.9em)", textAlign: "center" }}>
-            💡 Tips: Tryck på videon för att fokusera manuellt
-          </div>
-        </div>
-      )}
 
       <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
         <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)" }}>Tillagda artiklar ({unpicked.length})</h2>
@@ -1526,7 +1426,10 @@ function RowCard({ row, categories, onChanged }: { row: OrderRow; categories: Ca
 
   async function changeCategory(newId: string) {
     setCatId(newId);
+    // Update the order item's category
     await rpcSetQty(row.ean, newId, qty);
+    // Also update the product's default category for future use
+    await updateProduct(row.ean, { default_category_id: newId });
     onChanged();
   }
 
