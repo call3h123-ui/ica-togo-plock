@@ -366,16 +366,38 @@ export default function ToGoPage() {
         return;
       }
 
-      // Request camera with aggressive focus settings for Android
+      // Step 1: Find the best camera to use (prefer rear wide camera on Android)
+      let selectedDeviceId: string | undefined = undefined;
+      
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoCameras = devices.filter(device => device.kind === 'videoinput');
+        
+        console.log(`📹 Found ${videoCameras.length} camera(s):`);
+        videoCameras.forEach((cam, idx) => {
+          console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (${cam.deviceId})`);
+        });
+
+        // Prefer the first rear camera (usually the main wide camera)
+        // Android typically has: [0] = wide, [1] = ultra-wide, [2] = telephoto
+        if (videoCameras.length > 0) {
+          selectedDeviceId = videoCameras[0].deviceId;
+          console.log(`✓ Using camera: ${videoCameras[0].label || 'Main Camera'}`);
+        }
+      } catch (e) {
+        console.log("Could not enumerate devices, will use default");
+      }
+
+      // Step 2: Request camera with specific device and aggressive autofocus
       const constraints: any = {
         video: { 
-          facingMode: { ideal: "environment" },
+          ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: { ideal: "environment" } }),
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          // Focus settings that work better on Android
+          // Try to request autofocus in initial constraints
           advanced: [
-            { 
-              focusMode: "continuous",
+            {
+              focusMode: 'auto',
               focusDistance: 0
             },
             {
@@ -385,51 +407,83 @@ export default function ToGoPage() {
         }
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("✓ Camera stream acquired");
+      } catch (e) {
+        console.log("Primary constraint failed, trying without deviceId:", e);
+        // Fallback if specific deviceId fails
+        const fallbackConstraints: any = {
+          video: { 
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        };
+        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+      }
+
       videoRef.current.srcObject = stream;
       
-      // Get video track for additional focus control
+      // Step 3: Apply aggressive autofocus to the video track
       const videoTrack = stream.getVideoTracks()[0];
       
       if (videoTrack) {
+        console.log(`Using track: ${videoTrack.label}`);
+        
         // Get capabilities to see what's supported
         if (videoTrack.getCapabilities) {
           const capabilities = videoTrack.getCapabilities() as any;
           
-          // Try multiple focus strategies
+          console.log("📋 Camera capabilities:", {
+            focusMode: capabilities.focusMode,
+            focusDistance: capabilities.focusDistance,
+            torch: capabilities.torch
+          });
+          
+          // Try multiple focus strategies in order of aggressiveness
           const focusStrategies = [
-            // Strategy 1: Continuous autofocus
-            { focusMode: ['continuous', 'auto'] },
-            // Strategy 2: Auto focus with 0 distance (macro)
+            // Strategy 1: Manual focus at distance 0 (macro/close)
             { focusMode: 'auto', focusDistance: 0 },
-            // Strategy 3: Continuous focus
+            // Strategy 2: Continuous autofocus
+            { focusMode: 'continuous', focusDistance: 0 },
+            // Strategy 3: Auto focus with default distance
+            { focusMode: 'auto' },
+            // Strategy 4: Just continuous
             { focusMode: 'continuous' }
           ];
           
+          let focusApplied = false;
           for (const strategy of focusStrategies) {
             try {
               await videoTrack.applyConstraints({
                 advanced: [strategy as any]
               });
               console.log("✓ Focus strategy applied:", strategy);
+              focusApplied = true;
               break; // Stop if successful
             } catch (e) {
-              console.log("Focus strategy failed, trying next:", strategy);
+              console.log("⚠️ Focus strategy failed, trying next:", strategy, e);
             }
           }
+          
+          if (!focusApplied) {
+            console.log("⚠️ No focus strategy worked, continuing anyway");
+          }
+        } else {
+          console.log("⚠️ getCapabilities not supported on this device");
         }
       }
 
-      // Start video playback
+      // Step 4: Start video playback
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
-      // Give more time for autofocus on Android
+      // Give more time for autofocus to kick in on Android
+      console.log("⏳ Waiting for autofocus (2 seconds)...");
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Force focus by simulating user interaction (helps on some Android devices)
-      if (videoRef.current) {
-        videoRef.current.focus();
-      }
+      console.log("✓ Camera ready, starting barcode detection");
 
       readerRef.current = new BrowserMultiFormatReader();
       const reader = readerRef.current;
