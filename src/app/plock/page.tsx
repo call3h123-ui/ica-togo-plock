@@ -198,7 +198,7 @@ export default function PlockPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
           >
-            ⚙️ Inställningar
+            ⚙️ Filter
           </button>
           <Link 
             href="/" 
@@ -224,19 +224,13 @@ export default function PlockPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "clamp(12px, 3vw, 12px)", flexWrap: "wrap", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#666", fontSize: "clamp(0.8em, 1.5vw, 0.9em)" }}>Inloggad:</span>
-          <span style={{ fontWeight: 600, color: "#E4002B", fontSize: "clamp(0.9em, 2vw, 1em)" }}>{me}</span>
-        </div>
-        <button onClick={clearPicked} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", flex: "1 1 auto", minWidth: "120px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "clamp(12px, 3vw, 12px)", flexWrap: "wrap", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)" }}>
+        <div></div>
+        <button onClick={() => printPickList(todo, categories)} title="Skriv ut plocklista" style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "1.3em", background: "none", border: "none", cursor: "pointer" }}>
+          🖨️
+        </button>
+        <button onClick={clearPicked} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", minWidth: "120px" }}>
           🗑️ Rensa plockade
-        </button>
-        <button onClick={() => printPickList(todo, categories)} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", flex: "1 1 auto", minWidth: "120px" }}>
-          🖨️ Skriv ut
-        </button>
-        <button onClick={() => setMailOpen(true)} style={{ padding: "clamp(10px, 2vw, 12px) clamp(14px, 2vw, 20px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", flex: "1 1 auto", minWidth: "120px" }}>
-          📧 Maila
         </button>
       </div>
 
@@ -363,7 +357,7 @@ export default function PlockPage() {
       {settingsOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
           <div style={{ width: "100%", maxWidth: 450, background: "#fff", borderRadius: 14, padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>⚙️ Inställningar</h2>
+            <h2 style={{ marginTop: 0, marginBottom: 16 }}>⚙️ Filter</h2>
             
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.05em" }}>Favorit-kategorier</h3>
@@ -415,26 +409,25 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
         style={{
           border: toned ? "2px solid #e0e0e0" : "2px solid #E4002B",
           borderRadius: 12,
-          padding: "clamp(12px, 3vw, 14px)",
+          padding: "clamp(8px, 2vw, 10px)",
           display: "flex",
-          gap: "clamp(12px, 3vw, 14px)",
-          alignItems: "flex-start",
+          gap: "clamp(8px, 1.5vw, 10px)",
+          alignItems: "center",
           textDecoration: toned ? "line-through" : "none",
           opacity: toned ? 0.5 : 1,
           background: toned ? "#f5f5f5" : "#fafafa",
           transition: "all 0.2s",
-          cursor: "pointer",
-          flexWrap: "wrap"
+          cursor: "pointer"
         }}
       >
-        <input type="checkbox" checked={row.is_picked} onChange={(e) => onToggle(e.target.checked)} style={{ transform: "scale(1.4)", cursor: "pointer", accentColor: "#E4002B", minWidth: "24px", marginTop: "2px" }} />
+        <input type="checkbox" checked={row.is_picked} onChange={(e) => onToggle(e.target.checked)} style={{ transform: "scale(1.2)", cursor: "pointer", accentColor: "#E4002B", minWidth: "20px", marginTop: 0, flexShrink: 0 }} />
         
         {(row.product as any)?.image_url && (
-          <div style={{ flex: "0 0 auto", marginRight: "4px" }}>
+          <div style={{ flexShrink: 0 }}>
             <img 
               src={(row.product as any).image_url} 
               alt={row.product?.name}
-              style={{ width: "100px", height: "130px", objectFit: "contain", borderRadius: 6, background: "white", cursor: "pointer", transition: "all 0.2s" }}
+              style={{ width: "50px", height: "65px", objectFit: "contain", borderRadius: 4, background: "white", cursor: "pointer", transition: "all 0.2s" }}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -443,39 +436,22 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLImageElement).style.boxShadow = "0 4px 12px rgba(228, 0, 43, 0.3)";
-                (e.target as HTMLImageElement).style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLImageElement).style.boxShadow = "none";
-                (e.target as HTMLImageElement).style.transform = "scale(1)";
-              }}
             />
           </div>
         )}
       
-      <div style={{ flex: "1 1 200px", minWidth: "150px" }}>
-        <div style={{ fontSize: "clamp(1em, 2vw, 1.1em)", fontWeight: 600, color: toned ? "#999" : "#222" }}>{row.product?.name ?? "Okänd artikel"}</div>
-        {(row.product as any)?.brand && (
-          <div style={{ color: toned ? "#999" : "#666", fontSize: "clamp(0.8em, 1.5vw, 0.85em)", marginBottom: 4 }}>Märke: {(row.product as any).brand}</div>
-        )}
-        {(row.product as any)?.weight && (
-          <div style={{ color: "#000", fontSize: "clamp(0.85em, 1.5vw, 0.95em)", fontWeight: 700, marginBottom: 4 }}>{(row.product as any).weight}</div>
-        )}
-        <div style={{ opacity: 0.6, fontSize: "clamp(0.8em, 1.5vw, 0.85em)", color: "#666", marginBottom: 4 }}>EAN: {row.ean}</div>
-        {row.created_at && (
-          <div style={{ opacity: 0.4, fontSize: "clamp(0.75em, 1.3vw, 0.8em)", color: "#666" }}>
-            Tillagd: {new Date(row.created_at).toLocaleString("sv-SE")}
-          </div>
-        )}
-        {row.picked_at && (
-          <div style={{ opacity: 0.4, fontSize: "clamp(0.75em, 1.3vw, 0.8em)", color: "#666" }}>
-            Plockat: {new Date(row.picked_at).toLocaleString("sv-SE")}
-          </div>
-        )}
-      </div>
-      <div style={{ fontSize: "clamp(1.2em, 3vw, 1.4em)", fontWeight: 700, color: "#E4002B", minWidth: 50, textAlign: "right", flex: "0 0 auto" }}>×{row.qty}</div>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+          <div style={{ fontSize: "clamp(0.85em, 1.6vw, 0.95em)", fontWeight: 600, color: toned ? "#999" : "#222", marginBottom: 1 }}>{row.product?.name ?? "Okänd artikel"}</div>
+          {(row.product as any)?.brand && (
+            <div style={{ color: toned ? "#999" : "#666", fontSize: "clamp(0.7em, 1.2vw, 0.75em)" }}>Märke: {(row.product as any).brand}</div>
+          )}
+          {(row.product as any)?.weight && (
+            <div style={{ color: "#000", fontSize: "clamp(0.75em, 1.2vw, 0.85em)", fontWeight: 600 }}>{(row.product as any).weight}</div>
+          )}
+          <div style={{ opacity: 0.6, fontSize: "clamp(0.7em, 1.1vw, 0.75em)", color: "#666" }}>EAN: {row.ean}</div>
+        </div>
+
+        <div style={{ fontSize: "clamp(1em, 2.2vw, 1.2em)", fontWeight: 700, color: "#E4002B", minWidth: 40, textAlign: "right", flexShrink: 0 }}>×{row.qty}</div>
       </label>
 
       {expandedImage && (

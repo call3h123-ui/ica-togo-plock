@@ -33,7 +33,7 @@ export default function Home() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)", e.currentTarget.style.boxShadow = "0 8px 24px rgba(228, 0, 43, 0.35)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(228, 0, 43, 0.25)")}
           >
-            📦 ToGo – Skanna & beställ
+            ICA ToGo Agunnaryd - Beställning
           </Link>
           <Link 
             href="/plock" 
@@ -57,7 +57,7 @@ export default function Home() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)", e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.25)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)")}
           >
-            ✅ Liatorp – Plocklista
+            ICA Nära Liatorp - Plocklista
           </Link>
         </div>
       </div>

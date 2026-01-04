@@ -86,13 +86,22 @@ export default function ToGoPage() {
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
 
+  // Keyboard visibility for EAN input
+  const [showKeyboard, setShowKeyboard] = useState(false);
+
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
 
   async function refresh() {
     const [cats, ord] = await Promise.all([getCategories(), getOrderRows()]);
     setCategories(cats);
     setRows(ord);
-    if (!newCat && cats[0]) setNewCat(cats[0].id);
+    // Återhämta sparad kategori från localStorage eller använd första
+    const savedCatId = typeof window !== "undefined" ? localStorage.getItem("lastSelectedCatId") : null;
+    if (!newCat && savedCatId && cats.find(c => c.id === savedCatId)) {
+      setNewCat(savedCatId);
+    } else if (!newCat && cats[0]) {
+      setNewCat(cats[0].id);
+    }
   }
 
   useEffect(() => {
@@ -597,27 +606,105 @@ export default function ToGoPage() {
           <div style={modalStyle.card}>
             {/* Liten EAN-info och kamera innanför modalen */}
             <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
-              <input
-                value={scanValue}
-                onChange={(e) => setScanValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleScanSubmit((e.target as HTMLInputElement).value);
-                  }
-                }}
-                placeholder="Scanna EAN"
-                style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
-              />
-              {!camOn ? (
-                <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
-                  📷
-                </button>
+              {!showKeyboard ? (
+                <>
+                  <input
+                    ref={scanRef}
+                    value={scanValue}
+                    onChange={(e) => setScanValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleScanSubmit((e.target as HTMLInputElement).value);
+                      }
+                    }}
+                    placeholder="Scanna EAN"
+                    readOnly
+                    style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
+                  />
+                  <button 
+                    onClick={() => setShowKeyboard(true)}
+                    style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(1em, 1.5vw, 1.1em)", whiteSpace: "nowrap", background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    title="Öppna numerisk inmatning"
+                  >
+                    ⌨️
+                  </button>
+                </>
               ) : (
-                <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
-                  ✕
-                </button>
+                <div style={{ width: "100%", marginBottom: 12 }}>
+                  <input
+                    ref={scanRef}
+                    value={scanValue}
+                    onChange={(e) => setScanValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleScanSubmit((e.target as HTMLInputElement).value);
+                        setShowKeyboard(false);
+                      }
+                    }}
+                    placeholder="EAN-kod"
+                    inputMode="numeric"
+                    style={{ width: "100%", padding: "clamp(8px, 2vw, 10px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 6, border: "2px solid #E4002B", marginBottom: 8 }}
+                  />
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 8 }}>
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setScanValue(scanValue + num)}
+                        style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6 }}>
+                    <button
+                      onClick={() => setScanValue(scanValue + '0')}
+                      style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      0
+                    </button>
+                    <button
+                      onClick={() => setScanValue(scanValue.slice(0, -1))}
+                      style={{ padding: 12, fontSize: 18, fontWeight: 600, background: "#999", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      ⌫
+                    </button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+                    <button
+                      onClick={() => handleScanSubmit(scanValue)}
+                      style={{ padding: 12, fontSize: 16, fontWeight: 600, background: "#4CAF50", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      ✓ OK
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowKeyboard(false);
+                        setScanValue("");
+                      }}
+                      style={{ padding: 12, fontSize: 16, fontWeight: 600, background: "#ccc", color: "#333", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      Stäng
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!showKeyboard && (
+                <>
+                  {!camOn ? (
+                    <button onClick={startCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
+                      📷
+                    </button>
+                  ) : (
+                    <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
+                      ✕
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -904,7 +991,10 @@ export default function ToGoPage() {
                 {/* Kategori */}
                 <div style={{ marginBottom: 0 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Kategori</label>
-                  <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 6, border: "1px solid #ddd", background: "white" }}>
+                  <select value={newCat} onChange={(e) => {
+                    setNewCat(e.target.value);
+                    localStorage.setItem("lastSelectedCatId", e.target.value);
+                  }} style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 6, border: "1px solid #ddd", background: "white" }}>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -915,7 +1005,7 @@ export default function ToGoPage() {
               </div>
             )}
 
-            {/* Avbryt - längst ned */}
+            {/* Stäng - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => {
@@ -924,7 +1014,7 @@ export default function ToGoPage() {
                 }}
                 style={{ padding: 12, width: "100%", background: "#ccc", color: "#333", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer" }}
               >
-                Avbryt
+                Stäng
               </button>
             </div>
 
