@@ -602,7 +602,7 @@ export default function ToGoPage() {
     }
   }
 
-  function handleTapToFocus() {
+  function handleTapToFocus(e: React.MouseEvent<HTMLVideoElement>) {
     if (!videoRef.current?.srcObject) return;
     
     const stream = videoRef.current.srcObject as MediaStream;
@@ -610,28 +610,34 @@ export default function ToGoPage() {
     
     if (!videoTrack) return;
     
-    console.log("🔍 Tap-to-focus triggered");
+    // Get tap coordinates relative to video element
+    const rect = videoRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    
+    console.log(`🔍 Tap-to-focus at (${(x*100).toFixed(1)}%, ${(y*100).toFixed(1)}%)`);
     
     // Try to apply autofocus with multiple strategies
     if (typeof videoTrack.applyConstraints === 'function') {
+      // Try focus at tap point first (if supported)
       const focusStrategies = [
-        { focusMode: 'continuous' },
+        { focusMode: 'auto', focusDistance: 0, pointsOfInterest: [{ x, y }] },
+        { focusMode: 'continuous', pointsOfInterest: [{ x, y }] },
         { focusMode: 'auto' },
+        { focusMode: 'continuous' },
         { focusDistance: 0 }
       ];
       
-      let applied = false;
       for (const strategy of focusStrategies) {
-        if (applied) break;
         try {
           videoTrack.applyConstraints({
             advanced: [strategy as any]
           }).then(() => {
             console.log("✓ Focus applied:", strategy);
           }).catch(e => {
-            console.log("Focus strategy failed:", strategy, e);
+            console.log("Focus strategy failed, trying next...", e);
           });
-          applied = true;
+          break;
         } catch (e) {
           console.log("Error applying focus:", e);
         }
@@ -639,6 +645,16 @@ export default function ToGoPage() {
     } else {
       console.log("⚠️ applyConstraints not supported on this device");
     }
+  }
+
+  async function switchCamera(newDeviceId: string) {
+    console.log(`📹 Switching to camera: ${newDeviceId}`);
+    // Stop current camera
+    stopCamera();
+    // Wait a bit for cleanup
+    await new Promise(resolve => setTimeout(resolve, 300));
+    // Start new camera
+    await startCamera(newDeviceId);
   }
 
   const unpicked = rows.filter((r) => !r.is_picked && r.qty > 0);
@@ -796,7 +812,11 @@ export default function ToGoPage() {
               <label style={{ color: "#fff", fontSize: "clamp(0.85em, 1.5vw, 0.95em)", fontWeight: 500, whiteSpace: "nowrap" }}>Välja kamera:</label>
               <select 
                 value={selectedCameraId} 
-                onChange={(e) => setSelectedCameraId(e.target.value)}
+                onChange={(e) => {
+                  const newDeviceId = e.target.value;
+                  setSelectedCameraId(newDeviceId);
+                  switchCamera(newDeviceId);
+                }}
                 style={{ 
                   flex: 1, 
                   minWidth: "150px",
@@ -814,24 +834,6 @@ export default function ToGoPage() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => startCamera(selectedCameraId)}
-                style={{
-                  padding: "clamp(6px, 1vw, 8px) clamp(8px, 1vw, 12px)",
-                  fontSize: "clamp(0.8em, 1.5vw, 0.9em)",
-                  background: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  fontWeight: 500,
-                  whiteSpace: "nowrap"
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#45a049")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#4CAF50")}
-              >
-                🔄 Byt kamera
-              </button>
             </div>
           )}
           
