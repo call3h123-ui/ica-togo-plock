@@ -1,0 +1,1084 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import type { Category, OrderRow } from "@/lib/types";
+import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
+import { BrowserMultiFormatReader } from "@zxing/browser";
+
+function cleanEan(raw: string) {
+  return raw.trim().replace(/\s/g, "");
+}
+
+function compressImage(dataUrl: string, callback: (compressedDataUrl: string) => void) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    let width = img.width;
+    let height = img.height;
+
+    // Resize to max 600px width while maintaining aspect ratio
+    const maxWidth = 600;
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, width, height);
+    }
+
+    // Compress to JPEG with quality 0.75
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            callback(e.target?.result as string);
+          };
+          reader.readAsDataURL(blob);
+        }
+      },
+      "image/jpeg",
+      0.75
+    );
+  };
+  img.src = dataUrl;
+}
+
+export default function ToGoPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [rows, setRows] = useState<OrderRow[]>([]);
+  const [scanValue, setScanValue] = useState("");
+  const scanRef = useRef<HTMLInputElement | null>(null);
+
+  // Ny artikel modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [newEan, setNewEan] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newBrand, setNewBrand] = useState("");
+  const [newImage, setNewImage] = useState("");
+  const [newWeight, setNewWeight] = useState<string | null>(null);
+  const [newQty, setNewQty] = useState<number>(1);
+  const [newCat, setNewCat] = useState<string>("");
+  const [loadingProduct, setLoadingProduct] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+
+  // Kamera
+  const [camOn, setCamOn] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const [cameraForImage, setCameraForImage] = useState(false);
+  const imageCameraRef = useRef<HTMLVideoElement | null>(null);
+  const imageCameraStreamRef = useRef<MediaStream | null>(null);
+
+  // Settings modal
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
+  const [newCatName, setNewCatName] = useState("");
+
+  const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
+
+  async function refresh() {
+    const [cats, ord] = await Promise.all([getCategories(), getOrderRows()]);
+    setCategories(cats);
+    setRows(ord);
+    if (!newCat && cats[0]) setNewCat(cats[0].id);
+  }
+
+  useEffect(() => {
+    refresh();
+    scanRef.current?.focus();
+
+    const ch = supabase
+      .channel("order_items_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, () => refresh())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Start camera for image capture when cameraForImage is true
+  useEffect(() => {
+    if (cameraForImage && imageCameraRef.current) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          if (imageCameraRef.current) {
+            imageCameraRef.current.srcObject = stream;
+            imageCameraStreamRef.current = stream;
+          }
+        })
+        .catch((err) => {
+          console.error("Error accessing camera:", err);
+          alert("Kunde inte komma åt kameran");
+          setCameraForImage(false);
+        });
+    } else {
+      // Stop camera stream when not in use
+      if (imageCameraStreamRef.current) {
+        imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        imageCameraStreamRef.current = null;
+      }
+    }
+
+    return () => {
+      if (imageCameraStreamRef.current) {
+        imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        imageCameraStreamRef.current = null;
+      }
+    };
+  }, [cameraForImage]);
+
+  async function handleScanSubmit(value: string) {
+    try {
+      const ean = cleanEan(value);
+      console.log("handleScanSubmit -> ean:", ean);
+      if (!ean) return;
+
+      // If modal is open (modalOpen is true), save the current product first
+      if (modalOpen && newEan && newName.trim()) {
+        console.log("handleScanSubmit -> modal open, saving current product first");
+        const catId = newCat || defaultCatId;
+        // Check if product exists
+        const existing = await ensureProduct(newEan);
+        if (!existing) {
+          // New product - create it
+          await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+        } else {
+          // Product exists - update it
+          await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null });
+        }
+        await rpcIncrement(newEan, catId, newQty);
+        await refresh();
+        // Reset modal fields for new product
+        setNewName("");
+        setNewBrand("");
+        setNewImage("");
+        setNewQty(1);
+        setNewWeight(null);
+      }
+
+      const product = await ensureProduct(ean);
+      console.log("handleScanSubmit -> ensureProduct returned:", product);
+      if (!product) {
+        console.log("handleScanSubmit -> product not found, opening modal");
+        setModalOpen(true);
+        setNewEan(ean);
+        setNewName("");
+        setNewBrand("");
+        setNewImage("");
+        setNewCat(defaultCatId);
+
+        // Försök hämta produktinfo från extern API (Open Food Facts)
+        setLoadingProduct(true);
+        try {
+          const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.product) {
+              const prod = data.product;
+              setNewName(prod.product_name || prod.name || "");
+              setNewBrand(prod.brands || "");
+              if (prod.image_url) {
+                setNewImage(prod.image_url);
+              } else if (prod.image_front_url) {
+                setNewImage(prod.image_front_url);
+              }
+              // fetch weight/quantity if available
+              const w = prod.quantity || prod.serving_size || prod.nutriments?.serving_size || null;
+              setNewWeight(w ?? null);
+            }
+          }
+        } catch (e) {
+          console.log("Kunde inte hämta produktinfo från API:", e);
+        }
+        setLoadingProduct(false);
+        return;
+      }
+
+      // Product exists - open modal to let user add quantity
+      console.log("handleScanSubmit -> product exists, opening modal with existing product");
+      setModalOpen(true);
+      setNewEan(ean);
+      setNewName(product.name);
+      setNewBrand(product.brand || "");
+      setNewImage(product.image_url || "");
+      setNewWeight((product as any).weight || null);
+      setNewCat(product.default_category_id || defaultCatId);
+      setNewQty(1); // Reset quantity for new addition
+
+      setScanValue("");
+      scanRef.current?.focus();
+    } catch (err) {
+      console.error("handleScanSubmit error:", err);
+      let msg = "Okänt fel vid sökning";
+      if (err instanceof Error) msg = err.message;
+      else if (err && typeof err === "object") {
+        // @ts-ignore
+        msg = err.message || JSON.stringify(err);
+      }
+      alert("Fel vid sökning: " + msg);
+    }
+  }
+
+  async function saveNewProduct() {
+    if (!newEan) return;
+    if (!newName.trim()) return alert("Skriv produktnamn.");
+
+    const catId = newCat || defaultCatId;
+      try {
+      // Check if product already exists
+      const existing = await ensureProduct(newEan);
+      if (!existing) {
+        // New product - create it
+        await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+      } else {
+        // Product exists - update it with new details (image, brand, weight, name if changed)
+        await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null });
+      }
+      // For both new and existing, increment quantity
+      await rpcIncrement(newEan, catId, newQty);
+      await refresh();
+
+      // Reset form but keep modal open for next scan
+      setNewEan(null);
+      setNewName("");
+      setNewBrand("");
+      setNewImage("");
+      setNewQty(1);
+      setNewWeight(null);
+    } catch (err) {
+      console.error("saveNewProduct error:", err);
+      let msg = "Fel vid sparande";
+      if (err instanceof Error) msg = err.message;
+      else if (err && typeof err === "object") {
+        // try common fields
+        // @ts-ignore
+        if (typeof err.message === "string") msg = err.message;
+        else {
+          try {
+            msg = JSON.stringify(err);
+          } catch (e) {
+            msg = String(err);
+          }
+        }
+      } else {
+        msg = String(err);
+      }
+      alert(msg);
+    }
+  }
+
+  async function startCamera() {
+    setCamOn(true);
+    readerRef.current = new BrowserMultiFormatReader();
+    const reader = readerRef.current;
+
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    const backCam = devices.find((d) => /back|rear|environment/i.test(d.label)) ?? devices[0];
+
+    await reader.decodeFromVideoDevice(backCam?.deviceId, videoRef.current!, (result, _err) => {
+      if (result) {
+        handleScanSubmit(result.getText());
+      }
+    });
+  }
+
+  async function stopCamera() {
+    setCamOn(false);
+    readerRef.current = null;
+  }
+
+  const unpicked = rows.filter((r) => !r.is_picked && r.qty > 0);
+  const picked = rows.filter((r) => r.is_picked && r.qty > 0);
+
+  // Group unpicked items by category
+  const groupedByCategory = useMemo(() => {
+    const groups: { [key: string]: OrderRow[] } = {};
+    unpicked.forEach((row) => {
+      const catId = row.category_id || "uncategorized";
+      if (!groups[catId]) groups[catId] = [];
+      groups[catId].push(row);
+    });
+    return groups;
+  }, [unpicked]);
+
+  return (
+    <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: "200px" }}>
+          <h1 style={{ margin: 0, marginBottom: "4px" }}>📦 ToGo – Skanna & beställ</h1>
+          <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
+        </div>
+        <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)" }}>
+          <button 
+            onClick={() => setSettingsOpen(true)}
+            style={{ 
+              padding: "10px 16px", 
+              background: "#f0f0f0", 
+              color: "#333", 
+              border: "none",
+              borderRadius: 8, 
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "clamp(0.85em, 2vw, 0.95em)"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+          >
+            ⚙️ Inställningar
+          </button>
+          <Link 
+            href="/" 
+            style={{ 
+              padding: "10px 16px", 
+              background: "#f0f0f0", 
+              color: "#333", 
+              borderRadius: 8, 
+              textDecoration: "none",
+              fontWeight: 500,
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "clamp(0.85em, 2vw, 0.95em)"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+          >
+            ← Tillbaka
+          </Link>
+        </div>
+      </div>
+
+      <div style={{ display: modalOpen ? "none" : "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)", position: "relative", zIndex: 100 }}>
+        <input
+          ref={scanRef}
+          value={scanValue}
+          onChange={(e) => setScanValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              // use current input value to avoid stale closure
+              handleScanSubmit((e.target as HTMLInputElement).value);
+            }
+          }}
+          placeholder="Skanna EAN här"
+          style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
+        />
+
+        {!camOn ? (
+          <button onClick={startCamera} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
+            📷 Kamera
+          </button>
+        ) : (
+          <button onClick={stopCamera} style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", background: "#666", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "80px" }}>
+            ✕ Stäng
+          </button>
+        )}
+      </div>
+      <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
+        <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)" }}>Tillagda artiklar ({unpicked.length})</h2>
+        {unpicked.length === 0 ? (
+          <div style={{ background: "#f9f9f9", padding: "clamp(16px, 4vw, 24px)", borderRadius: 12, textAlign: "center", color: "#999" }}>
+            <p style={{ fontSize: "clamp(0.9em, 2vw, 1em)" }}>Ingen artikel tillagd än. Börja skanna!</p>
+          </div>
+        ) : (
+          <div>
+            {Object.entries(groupedByCategory).map(([catId, items]) => {
+              const category = categories.find((c) => c.id === catId);
+              const catName = category?.name || "Okategoriserad";
+              return (
+                <div key={catId} style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
+                  <h3 style={{ marginBottom: "clamp(8px, 2vw, 12px)", fontSize: "clamp(0.95em, 2vw, 1.05em)", color: "#666" }}>{catName}</h3>
+                  <div style={{ display: "grid", gap: "clamp(8px, 2vw, 12px)" }}>
+                    {items.map((r) => (
+                      <RowCard key={r.id} row={r} categories={categories} onChanged={refresh} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {picked.length > 0 && (
+        <div style={{ marginTop: "clamp(20px, 5vw, 32px)" }}>
+          <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", opacity: 0.7 }}>
+            ✓ Plockat
+          </h2>
+          <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
+            {picked.map((r) => (
+              <div key={r.id} style={{ border: "2px solid #e0e0e0", borderRadius: 12, padding: "clamp(12px, 3vw, 16px)", display: "flex", gap: "clamp(12px, 3vw, 16px)", alignItems: "flex-start", background: "#f5f5f5", opacity: 0.65, textDecoration: "line-through", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 200px", minWidth: "150px" }}>
+                  <div style={{ fontSize: "clamp(1em, 2vw, 1.1em)", fontWeight: 600, color: "#999", marginBottom: 6 }}>{r.product?.name ?? "Okänd artikel"}</div>
+                  <div style={{ opacity: 0.5, fontSize: "clamp(0.8em, 1.5vw, 0.85em)", color: "#666", marginBottom: 4 }}>EAN: {r.ean}</div>
+                  {r.created_at && (
+                    <div style={{ opacity: 0.4, fontSize: "clamp(0.75em, 1.3vw, 0.8em)", color: "#666" }}>
+                      Tillagd: {new Date(r.created_at).toLocaleString("sv-SE")}
+                    </div>
+                  )}
+                  {r.picked_at && (
+                    <div style={{ opacity: 0.4, fontSize: "clamp(0.75em, 1.3vw, 0.8em)", color: "#666" }}>
+                      Plockat: {new Date(r.picked_at).toLocaleString("sv-SE")}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", justifyContent: "flex-end" }}>
+                  <div style={{ fontSize: "clamp(1.2em, 3vw, 1.4em)", fontWeight: 700, color: "#999", minWidth: 50, textAlign: "right" }}>×{r.qty}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {modalOpen && (
+        <div style={modalStyle.overlay}>
+          <div style={modalStyle.card}>
+            {/* EAN input och kamera innanför modalen */}
+            <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 16, background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12 }}>
+              <input
+                value={scanValue}
+                onChange={(e) => setScanValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleScanSubmit((e.target as HTMLInputElement).value);
+                  }
+                }}
+                placeholder="Mata in eller scanna EAN"
+                style={{ flex: "1 1 200px", minWidth: "150px", padding: "clamp(8px, 2vw, 10px)", fontSize: "clamp(13px, 2vw, 15px)", borderRadius: 8, border: "2px solid #E4002B" }}
+              />
+              {!camOn ? (
+                <button onClick={startCamera} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(0.8em, 2vw, 0.85em)", whiteSpace: "nowrap" }}>
+                  📷 Kamera
+                </button>
+              ) : (
+                <button onClick={stopCamera} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(0.8em, 2vw, 0.85em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
+                  ✕ Stäng
+                </button>
+              )}
+            </div>
+
+            {camOn && (
+              <div style={{ marginBottom: "clamp(12px, 3vw, 16px)", background: "#f5f5f5", padding: "clamp(10px, 2vw, 12px)", borderRadius: 12 }}>
+                <video ref={videoRef} style={{ width: "100%", maxWidth: 400, borderRadius: 10, border: "3px solid #E4002B" }} muted playsInline />
+              </div>
+            )}
+
+            <div style={{ background: "#f0f0f0", padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <div style={{ fontSize: 14, color: "#666" }}>EAN:</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#E4002B" }}>{newEan}</div>
+            </div>
+
+            {loadingProduct && (
+              <div style={{ background: "#e8f4f8", padding: 12, borderRadius: 8, marginBottom: 12, textAlign: "center", color: "#0066cc" }}>
+                Hämtar produktinfo...
+              </div>
+            )}
+
+            {newImage && (
+              <div style={{ marginBottom: 16, textAlign: "center" }}>
+                <img 
+                  src={newImage} 
+                  alt="Produktbild" 
+                  style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: 8, cursor: "pointer", transition: "all 0.2s" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setExpandedImage(newImage);
+                  }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLImageElement).style.boxShadow = "0 4px 12px rgba(228, 0, 43, 0.3)";
+                    (e.target as HTMLImageElement).style.transform = "scale(1.03)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLImageElement).style.boxShadow = "none";
+                    (e.target as HTMLImageElement).style.transform = "scale(1)";
+                  }}
+                />
+                <p style={{ fontSize: "0.85em", color: "#666", marginTop: 6 }}>Klicka för att se större</p>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Produktnamn *</label>
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="T.ex. Mellanmjölk 1L"
+                style={{ width: "100%", padding: 12, fontSize: 16 }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ marginBottom: 20, background: "#fff3e0", padding: 16, borderRadius: 12, border: "2px solid #E4002B" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <button 
+                      onClick={() => setNewQty(Math.max(1, (newQty || 1) - 1))} 
+                      style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
+                    >−</button>
+                    <input value={newQty} onChange={(e) => setNewQty(Math.max(1, Number(e.target.value || 1)))} style={{ width: 70, textAlign: "center", padding: 10, fontSize: 20, fontWeight: 700, border: "2px solid #E4002B", borderRadius: 6 }} inputMode="numeric" />
+                    <button 
+                      onClick={() => setNewQty((newQty || 1) + 1)} 
+                      style={{ padding: "8px 12px", fontSize: 18, minWidth: 44, minHeight: 44, fontWeight: 700, background: "#E4002B", color: "white", border: "none", borderRadius: 6, cursor: "pointer", transition: "all 0.15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
+                    >+</button>
+                    {[3, 4, 5, 6].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setNewQty(num)}
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          background: newQty === num ? "#E4002B" : "#ddd",
+                          color: newQty === num ? "white" : "#333",
+                          border: "none",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                          minWidth: 38,
+                          marginLeft: num === 3 ? 20 : 0
+                        }}
+                        onMouseEnter={(e) => {
+                          if (newQty !== num) {
+                            (e.currentTarget as HTMLButtonElement).style.background = "#bbb";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (newQty !== num) {
+                            (e.currentTarget as HTMLButtonElement).style.background = "#ddd";
+                          }
+                        }}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ fontSize: "2.5em", fontWeight: 700, color: "#E4002B", marginLeft: 16 }}>×{newQty}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Varumärke</label>
+              <input
+                value={newBrand}
+                onChange={(e) => setNewBrand(e.target.value)}
+                placeholder="T.ex. Arla, Fontana"
+                style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+              />
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Hämtas automatiskt från EAN när möjligt.</div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Vikt (t.ex. 1kg, 500g)</label>
+              <input
+                value={newWeight ?? ""}
+                onChange={(e) => setNewWeight(e.target.value ? e.target.value : null)}
+                placeholder="Lämna tomt om ingen vikt"
+                style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+              />
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Redigera vikten om automatisk hämtning är felaktig.</div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Bild</label>
+              {!cameraForImage ? (
+                <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          const dataUrl = evt.target?.result as string;
+                          compressImage(dataUrl, (compressed) => {
+                            setNewImage(compressed);
+                          });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCameraForImage(true)}
+                    style={{
+                      padding: "10px 16px",
+                      background: "#E4002B",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#C40024")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#E4002B")}
+                  >
+                    📷 Ta kort
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                  <video
+                    ref={imageCameraRef}
+                    style={{
+                      width: "100%",
+                      maxWidth: "400px",
+                      borderRadius: 8,
+                      border: "3px solid #E4002B",
+                      marginBottom: 8
+                    }}
+                    autoPlay
+                    playsInline
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const video = imageCameraRef.current;
+                        if (video) {
+                          const canvas = document.createElement("canvas");
+                          canvas.width = video.videoWidth;
+                          canvas.height = video.videoHeight;
+                          const ctx = canvas.getContext("2d");
+                          if (ctx) {
+                            ctx.drawImage(video, 0, 0);
+                            const dataUrl = canvas.toDataURL("image/jpeg");
+                            compressImage(dataUrl, (compressed) => {
+                              setNewImage(compressed);
+                              setCameraForImage(false);
+                              // Stop camera
+                              if (imageCameraStreamRef.current) {
+                                imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+                                imageCameraStreamRef.current = null;
+                              }
+                            });
+                          }
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        background: "#4CAF50",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#45a049")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#4CAF50")}
+                    >
+                      ✓ Ta kort
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraForImage(false);
+                        if (imageCameraStreamRef.current) {
+                          imageCameraStreamRef.current.getTracks().forEach((track) => track.stop());
+                          imageCameraStreamRef.current = null;
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        background: "#999",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#777")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#999")}
+                    >
+                      ✕ Avbryt
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>Ladda upp eller ta en bild av produkten. Bilder komprimeras automatiskt.</div>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600, color: "#333" }}>Kategori</label>
+              <select value={newCat} onChange={(e) => setNewCat(e.target.value)} style={{ width: "100%", padding: 10, fontSize: 15, borderRadius: 6, border: "2px solid #ddd", background: "white" }}>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => {
+                  setModalOpen(false);
+                  scanRef.current?.focus();
+                }}
+                style={{ padding: 12, flex: 1, background: "#ccc", color: "#333" }}
+              >
+                Avbryt
+              </button>
+              <button onClick={saveNewProduct} style={{ padding: 12, flex: 1, fontSize: 16, fontWeight: 600 }}>
+                ✓ Spara & lägg till
+              </button>
+            </div>
+
+            <p style={{ marginTop: 14, fontSize: 13, opacity: 0.6, fontStyle: "italic" }}>
+              💡 Produktinfo hämtas automatiskt från EAN-kod när möjligt
+            </p>
+          </div>
+        </div>
+      )}
+
+      {expandedImage && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "clamp(16px, 4vw, 24px)",
+            cursor: "pointer"
+          }}
+          onClick={() => setExpandedImage(null)}
+        >
+          <div 
+            style={{
+              position: "relative",
+              background: "white",
+              borderRadius: 12,
+              padding: "clamp(16px, 4vw, 24px)",
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              cursor: "default"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={expandedImage}
+              alt="Produktbild större"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "70vh",
+                objectFit: "contain",
+                borderRadius: 8,
+                marginBottom: "clamp(16px, 3vw, 20px)"
+              }}
+            />
+            <button
+              onClick={() => setExpandedImage(null)}
+              style={{
+                padding: "clamp(10px, 2vw, 12px) clamp(20px, 3vw, 28px)",
+                background: "#E4002B",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "clamp(0.85em, 1.5vw, 0.95em)",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#C40024";
+                (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#E4002B";
+                (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+              }}
+            >
+              Stäng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <div style={modalStyle.overlay as React.CSSProperties}>
+          <div style={modalStyle.card as React.CSSProperties}>
+            <h2 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Inställningar</h2>
+
+            {/* Kategorier Section */}
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Kategorier</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {categories.map((cat) => (
+                  <div key={cat.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
+                    {editingCatId === cat.id ? (
+                      <>
+                        <input
+                          value={editingCatName}
+                          onChange={(e) => setEditingCatName(e.target.value)}
+                          style={{ flex: 1, padding: "8px", borderRadius: 4, border: "1px solid #ddd", fontSize: "0.95em" }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateCategory(cat.id, editingCatName);
+                              await refresh();
+                              setEditingCatId(null);
+                            } catch (err) {
+                              alert("Kunde inte uppdatera kategori");
+                            }
+                          }}
+                          style={{ padding: "8px 12px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          Spara
+                        </button>
+                        <button
+                          onClick={() => setEditingCatId(null)}
+                          style={{ padding: "8px 12px", fontSize: "0.85em", background: "#999", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          Avbryt
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ flex: 1 }}>{cat.name}</span>
+                        <button
+                          onClick={() => {
+                            setEditingCatId(cat.id);
+                            setEditingCatName(cat.name);
+                          }}
+                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#2196F3", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          Redigera
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Ta bort "${cat.name}"?`)) return;
+                            try {
+                              await deleteCategory(cat.id);
+                              await refresh();
+                            } catch (err) {
+                              alert("Kunde inte ta bort kategori");
+                            }
+                          }}
+                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#E4002B", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          Ta bort
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new category */}
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <input
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder="Ny kategorinamn"
+                  style={{ flex: 1, padding: "10px", borderRadius: 4, border: "2px solid #E4002B", fontSize: "0.95em" }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Add new category
+                    }
+                  }}
+                />
+                <button
+                  onClick={async () => {
+                    if (!newCatName.trim()) return alert("Skriv kategorinamn");
+                    try {
+                      await createCategory(newCatName);
+                      await refresh();
+                      setNewCatName("");
+                    } catch (err) {
+                      alert("Kunde inte lägga till kategori");
+                    }
+                  }}
+                  style={{ padding: "10px 16px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                >
+                  + Lägg till
+                </button>
+              </div>
+            </div>
+
+            {/* Stäng modal */}
+            <button
+              onClick={() => setSettingsOpen(false)}
+              style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#666", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+            >
+              Stäng inställningar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RowCard({ row, categories, onChanged }: { row: OrderRow; categories: Category[]; onChanged: () => void }) {
+  const [qty, setQty] = useState<number>(row.qty);
+  const [catId, setCatId] = useState<string>(row.category_id);
+
+  useEffect(() => {
+    setQty(row.qty);
+    setCatId(row.category_id);
+  }, [row.qty, row.category_id]);
+
+  async function inc(delta: number) {
+    await rpcIncrement(row.ean, catId, delta);
+    onChanged();
+  }
+
+  async function setExact(v: number) {
+    const n = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+    setQty(n);
+    await rpcSetQty(row.ean, catId, n);
+    onChanged();
+  }
+
+  async function changeCategory(newId: string) {
+    setCatId(newId);
+    await rpcSetQty(row.ean, newId, qty);
+    onChanged();
+  }
+
+  return (
+    <div style={{ border: "2px solid #e5e5e5", borderRadius: 12, padding: "clamp(12px, 3vw, 16px)", display: "flex", gap: "clamp(12px, 3vw, 16px)", alignItems: "center", background: "#fafafa", transition: "all 0.2s", flexWrap: "wrap" }}>
+      {row.product?.image_url && (
+        <img src={row.product.image_url} alt="Produktbild" style={{ width: "80px", height: "100px", objectFit: "cover", borderRadius: 8 }} />
+      )}
+      <div style={{ flex: "1 1 200px", minWidth: "150px" }}>
+        <div style={{ fontSize: "clamp(1.1em, 2.2vw, 1.15em)", fontWeight: 600, color: "#222", marginBottom: 4 }}>{row.product?.name ?? "Okänd artikel"}</div>
+        {(row.product as any)?.brand && (
+          <div style={{ color: "#222", fontSize: "clamp(0.75em, 1.3vw, 0.8em)", marginBottom: 3 }}>{(row.product as any).brand}</div>
+        )}
+        { (row.product as any)?.weight && (
+          <div style={{ color: "#222", fontSize: "clamp(0.75em, 1.3vw, 0.8em)", marginBottom: 4 }}>{(row.product as any).weight}</div>
+        )}
+        <div style={{ opacity: 0.6, fontSize: "clamp(0.8em, 1.5vw, 0.85em)", color: "#666" }}>EAN: {row.ean}</div>
+      </div>
+
+      <select value={catId} onChange={(e) => changeCategory(e.target.value)} style={{ padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(0.8em, 1.5vw, 0.85em)", borderRadius: 6, border: "2px solid #ddd", background: "white", flex: "1 1 150px", minWidth: "120px" }}>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+
+      <div style={{ display: "flex", gap: "clamp(6px, 1.5vw, 10px)", alignItems: "center", flex: "1 1 auto", justifyContent: "flex-end" }}>
+        <button onClick={() => inc(-1)} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(1em, 2vw, 1.2em)", minWidth: "44px", minHeight: "44px" }}>
+          −
+        </button>
+        <input
+          value={qty}
+          onChange={(e) => setQty(Number(e.target.value))}
+          onBlur={() => setExact(qty)}
+          style={{ width: "clamp(50px, 10vw, 60px)", textAlign: "center", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(1em, 1.5vw, 1em)", fontWeight: 600 }}
+          inputMode="numeric"
+        />
+        <button onClick={() => inc(+1)} style={{ padding: "clamp(8px, 2vw, 10px) clamp(10px, 2vw, 12px)", fontSize: "clamp(1em, 2vw, 1.2em)", minWidth: "44px", minHeight: "44px" }}>
+          +
+        </button>
+        <button
+          onClick={async () => {
+            if (!confirm("Ta bort denna rad?")) return;
+            await rpcSetQty(row.ean, catId, 0);
+            onChanged();
+          }}
+          aria-label="Ta bort"
+          title="Ta bort"
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#C40024";
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.04)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#E4002B";
+            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+          }}
+          style={{ padding: "8px 10px", background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 120ms ease" }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const modalStyle = {
+  overlay: {
+    position: "fixed" as const,
+    inset: 0,
+    background: "rgba(0,0,0,0.5)",
+    display: "grid",
+    placeItems: "center",
+    padding: 16,
+    zIndex: 200,
+    overflowY: "auto" as const,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 520,
+    maxHeight: "90vh",
+    overflowY: "auto" as const,
+    background: "#fff",
+    borderRadius: 14,
+    padding: 24,
+    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+  },
+};
