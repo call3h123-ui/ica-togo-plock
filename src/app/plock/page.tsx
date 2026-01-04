@@ -407,7 +407,7 @@ export default function PlockPage() {
 }
 
 function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boolean) => void; toned: boolean }) {
-  const [expandedImage, setExpandedImage] = useState<boolean>(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   return (
     <>
@@ -438,7 +438,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                setExpandedImage(true);
+                setExpandedImage(row.product?.image_url || null);
               }}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
@@ -497,7 +497,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
             padding: "clamp(16px, 4vw, 24px)",
             cursor: "pointer"
           }}
-          onClick={() => setExpandedImage(false)}
+          onClick={() => setExpandedImage(null)}
         >
           <div 
             style={{
@@ -529,7 +529,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
               <div style={{ fontSize: "clamp(1.1em, 2.5vw, 1.3em)", fontWeight: 600, marginBottom: 8 }}>{row.product?.name}</div>
               <div style={{ fontSize: "clamp(0.85em, 1.5vw, 0.95em)", color: "#666", marginBottom: 8 }}>EAN: {row.ean}</div>
               <button
-                onClick={() => setExpandedImage(false)}
+                onClick={() => setExpandedImage(null)}
                 style={{
                   padding: "clamp(10px, 2vw, 12px) clamp(20px, 3vw, 28px)",
                   background: "#E4002B",
