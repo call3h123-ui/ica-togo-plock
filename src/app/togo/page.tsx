@@ -69,16 +69,10 @@ export default function ToGoPage() {
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
-  // Kamera
-  const [camOn, setCamOn] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  // Bild från kamera för produkt
   const [cameraForImage, setCameraForImage] = useState(false);
   const imageCameraRef = useRef<HTMLVideoElement | null>(null);
   const imageCameraStreamRef = useRef<MediaStream | null>(null);
-  const scanningRef = useRef(false); // Track if actively scanning to prevent duplicates
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -110,6 +104,12 @@ export default function ToGoPage() {
   useEffect(() => {
     refresh();
     scanRef.current?.focus();
+
+    // Läs skanningsmetod från localStorage
+    const savedScannerMode = typeof window !== "undefined" ? localStorage.getItem("scannerMode") : null;
+    if (savedScannerMode !== null) {
+      setScannerMode(savedScannerMode === "true");
+    }
 
     const ch = supabase
       .channel("order_items_changes")
@@ -158,31 +158,13 @@ export default function ToGoPage() {
 
   // Auto-restart camera when modal opens (after scanning a product)
   useEffect(() => {
-    if (modalOpen && camOn && !videoRef.current?.srcObject) {
-      console.log("Auto-restarting camera after product scan");
-      startCamera();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modalOpen]);
-
-  // Load available cameras on mount
-  useEffect(() => {
-    loadAvailableCameras();
   }, []);
 
   async function handleScanSubmit(value: string) {
-    // Prevent duplicate scans - if already scanning, ignore
-    if (scanningRef.current) {
-      console.log("Scan in progress, ignoring duplicate");
-      return;
-    }
-
     try {
-      scanningRef.current = true; // Mark as scanning
       const ean = cleanEan(value);
       console.log("handleScanSubmit -> ean:", ean);
       if (!ean) {
-        scanningRef.current = false;
         return;
       }
 
@@ -248,7 +230,6 @@ export default function ToGoPage() {
           console.log("Kunde inte hämta produktinfo från API:", e);
         }
         setLoadingProduct(false);
-        scanningRef.current = false; // Reset scanning flag
         return;
       }
 
@@ -265,9 +246,7 @@ export default function ToGoPage() {
       setNewQty(1); // Reset quantity for new addition
 
       scanRef.current?.focus();
-      scanningRef.current = false; // Reset scanning flag
     } catch (err) {
-      scanningRef.current = false; // Reset on error
       console.error("handleScanSubmit error:", err);
       let msg = "Okänt fel vid sökning";
       if (err instanceof Error) msg = err.message;
@@ -370,294 +349,7 @@ export default function ToGoPage() {
     }
   }
 
-  async function loadAvailableCameras() {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoCameras = devices.filter(device => device.kind === 'videoinput');
-      setAvailableCameras(videoCameras);
-      console.log(`📹 Found ${videoCameras.length} camera(s):`);
-      videoCameras.forEach((cam, idx) => {
-        console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (ID: ${cam.deviceId.substring(0, 8)}...)`);
-      });
-      
-      // Set the first camera as default if not already selected
-      if (!selectedCameraId && videoCameras.length > 0) {
-        setSelectedCameraId(videoCameras[0].deviceId);
-      }
-    } catch (e) {
-      console.log("Could not enumerate devices", e);
-    }
-  }
 
-  async function startCamera(deviceId?: string) {
-    setCamOn(true);
-
-    // Wait for React to render the video element
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    try {
-      // Get video element
-      if (!videoRef.current) {
-        alert("Kunde inte hitta videoelement");
-        setCamOn(false);
-        return;
-      }
-
-      // Load cameras if not already loaded
-      if (availableCameras.length === 0) {
-        await loadAvailableCameras();
-      }
-
-      // Step 1: Use provided deviceId or the selected one
-      let selectedDeviceId: string | undefined = deviceId || selectedCameraId;
-      
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoCameras = devices.filter(device => device.kind === 'videoinput');
-        
-        console.log(`📹 Found ${videoCameras.length} camera(s):`);
-        videoCameras.forEach((cam, idx) => {
-          console.log(`  ${idx}: ${cam.label || `Camera ${idx + 1}`} (ID: ${cam.deviceId.substring(0, 8)}...)`);
-        });
-
-        // Try to find a rear/back camera (not front/selfie)
-        // Look for keywords that indicate a rear camera
-        const rearCameraKeywords = ['back', 'rear', 'main', 'wide', '0', 'environment'];
-        const frontCameraKeywords = ['front', 'selfie', 'user', 'face'];
-        
-        let rearCamera = videoCameras.find(cam => {
-          const label = (cam.label || '').toLowerCase();
-          return rearCameraKeywords.some(keyword => label.includes(keyword)) && 
-                 !frontCameraKeywords.some(keyword => label.includes(keyword));
-        });
-        
-        // If no rear camera found by label, try using facingMode
-        if (!rearCamera && videoCameras.length > 1) {
-          // Usually the second camera is rear on phones with front camera first
-          rearCamera = videoCameras[1];
-        }
-        
-        // Default to first camera if nothing else found
-        if (!rearCamera && videoCameras.length > 0) {
-          rearCamera = videoCameras[0];
-        }
-        
-        if (rearCamera) {
-          selectedDeviceId = rearCamera.deviceId;
-          console.log(`✓ Using rear camera: ${rearCamera.label || 'Main Camera'}`);
-        }
-      } catch (e) {
-        console.log("Could not enumerate devices, will use default");
-      }
-
-      // Step 2: Request camera with specific device and aggressive autofocus
-      const constraints: any = {
-        video: { 
-          ...(selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : { facingMode: { ideal: "environment" } }),
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          // Try to request autofocus in initial constraints
-          advanced: [
-            {
-              focusMode: 'auto',
-              focusDistance: 0
-            },
-            {
-              torch: false
-            }
-          ]
-        }
-      };
-
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log("✓ Camera stream acquired");
-      } catch (e) {
-        console.log("Primary constraint failed, trying without deviceId:", e);
-        // Fallback if specific deviceId fails
-        const fallbackConstraints: any = {
-          video: { 
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        };
-        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-      }
-
-      videoRef.current.srcObject = stream;
-      
-      // Step 3: Apply aggressive autofocus to the video track
-      const videoTrack = stream.getVideoTracks()[0];
-      
-      if (videoTrack) {
-        console.log(`Using track: ${videoTrack.label}`);
-        
-        // Get capabilities to see what's supported
-        if (videoTrack.getCapabilities) {
-          const capabilities = videoTrack.getCapabilities() as any;
-          
-          console.log("📋 Camera capabilities:", {
-            focusMode: capabilities.focusMode,
-            torch: capabilities.torch
-          });
-          
-          // Simple focus strategies - just focusMode, no focusDistance (doesn't work reliably)
-          const focusStrategies = [
-            { focusMode: 'continuous' },
-            { focusMode: 'auto' }
-          ];
-          
-          let focusApplied = false;
-          
-          for (const strategy of focusStrategies) {
-            try {
-              await videoTrack.applyConstraints({
-                advanced: [strategy as any]
-              });
-              console.log("✓ Focus mode applied:", strategy.focusMode);
-              focusApplied = true;
-              break;
-            } catch (e) {
-              console.log("⚠️ Focus mode failed, trying next:", e);
-            }
-          }
-          
-          if (!focusApplied) {
-            console.log("⚠️ Could not set focus mode");
-          }
-          
-          // Try torch for better lighting
-          if (capabilities.torch && capabilities.torch.includes('on')) {
-            console.log("💡 Torch available, enabling...");
-            try {
-              await videoTrack.applyConstraints({
-                advanced: [{ torch: true } as any]
-              });
-              console.log("✓ Torch enabled");
-            } catch (e) {
-              console.log("⚠️ Could not enable torch:", e);
-            }
-          }
-        } else {
-          console.log("⚠️ getCapabilities not supported on this device");
-        }
-      }
-
-      // Step 4: Start video playback
-      videoRef.current.play().catch(err => console.error("Video play error:", err));
-
-      // Short wait for camera to initialize
-      console.log("⏳ Camera initializing...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log("✓ Camera ready, starting barcode detection");
-
-      readerRef.current = new BrowserMultiFormatReader();
-      const reader = readerRef.current;
-
-      // Configure hints for EAN detection
-      const hints = new Map();
-      hints.set(1, [12, 13]); // BarcodeFormat.EAN_13=13, EAN_8=12
-      reader.setHints(hints);
-
-      console.log("Barcode scanner started - scanning for EAN codes...");
-
-      // Continuously scan, but handleScanSubmit prevents duplicates with scanningRef
-      const scannerPromise = reader.decodeFromVideoElement(videoRef.current, (result, err) => {
-        if (result) {
-          console.log("✓ Barcode detected:", result.getText());
-          handleScanSubmit(result.getText());
-        }
-      });
-
-      // Store the scanner promise so we can potentially cancel it
-      // For now, let the scan run until camera is stopped
-    } catch (err) {
-      console.error("Camera error:", err);
-      let errorMsg = "Okänt fel";
-      if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          errorMsg = "Tillåta kameratillgång i webbläsarinställningar";
-        } else if (err.name === "NotFoundError") {
-          errorMsg = "Ingen kamera funnen";
-        } else {
-          errorMsg = err.message;
-        }
-      }
-      alert("Kunde inte starta kamera: " + errorMsg);
-      setCamOn(false);
-    }
-  }
-
-  async function stopCamera() {
-    setCamOn(false);
-    scanningRef.current = false; // Stop scanning when camera is stopped
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    if (readerRef.current) {
-      readerRef.current = null;
-    }
-  }
-
-  function handleTapToFocus(e: React.MouseEvent<HTMLVideoElement>) {
-    if (!videoRef.current?.srcObject) return;
-    
-    const stream = videoRef.current.srcObject as MediaStream;
-    const videoTrack = stream.getVideoTracks()[0];
-    
-    if (!videoTrack) return;
-    
-    // Get tap coordinates relative to video element
-    const rect = videoRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    
-    console.log(`🔍 Tap-to-focus at (${(x*100).toFixed(1)}%, ${(y*100).toFixed(1)}%)`);
-    
-    // Try to apply autofocus with multiple strategies
-    if (typeof videoTrack.applyConstraints === 'function') {
-      // Try focus at tap point first (if supported)
-      const focusStrategies = [
-        { focusMode: 'auto', focusDistance: 0, pointsOfInterest: [{ x, y }] },
-        { focusMode: 'continuous', pointsOfInterest: [{ x, y }] },
-        { focusMode: 'auto' },
-        { focusMode: 'continuous' },
-        { focusDistance: 0 }
-      ];
-      
-      for (const strategy of focusStrategies) {
-        try {
-          videoTrack.applyConstraints({
-            advanced: [strategy as any]
-          }).then(() => {
-            console.log("✓ Focus applied:", strategy);
-          }).catch(e => {
-            console.log("Focus strategy failed, trying next...", e);
-          });
-          break;
-        } catch (e) {
-          console.log("Error applying focus:", e);
-        }
-      }
-    } else {
-      console.log("⚠️ applyConstraints not supported on this device");
-    }
-  }
-
-  async function switchCamera(newDeviceId: string) {
-    console.log(`📹 Switching to camera: ${newDeviceId}`);
-    // Stop current camera
-    stopCamera();
-    // Wait a bit for cleanup
-    await new Promise(resolve => setTimeout(resolve, 300));
-    // Start new camera
-    await startCamera(newDeviceId);
-  }
 
   const unpicked = rows.filter((r) => !r.is_picked && r.qty > 0);
   const picked = rows.filter((r) => r.is_picked && r.qty > 0);
@@ -880,28 +572,7 @@ export default function ToGoPage() {
               pattern="[0-9]*"
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
-            {!camOn ? (
-              <button onClick={() => startCamera()} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", whiteSpace: "nowrap" }}>
-                📷
-              </button>
-            ) : (
-              <button onClick={stopCamera} style={{ padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 10px)", fontSize: "clamp(0.75em, 1.5vw, 0.8em)", background: "#666", color: "white", whiteSpace: "nowrap" }}>
-                ✕
-              </button>
-            )}
           </div>
-
-            {camOn && (
-              <div style={{ marginBottom: "clamp(8px, 2vw, 12px)", background: "#f5f5f5", padding: "clamp(8px, 2vw, 10px)", borderRadius: 8 }}>
-                <video 
-                  ref={videoRef} 
-                  autoPlay={true}
-                  playsInline={true}
-                  style={{ width: "100%", maxWidth: 300, borderRadius: 8, border: "2px solid #E4002B" }} 
-                  muted 
-                />
-              </div>
-            )}
 
             {loadingProduct && (
               <div style={{ background: "#e8f4f8", padding: 12, borderRadius: 8, marginBottom: 12, textAlign: "center", color: "#0066cc", fontSize: "0.9em" }}>
@@ -1193,8 +864,6 @@ export default function ToGoPage() {
               <button
                 onClick={() => {
                   setModalOpen(false);
-                  // Reset scanning flag when closing modal
-                  scanningRef.current = false;
                   scanRef.current?.focus();
                 }}
                 style={{ padding: 14, width: "100%", background: "#E4002B", color: "white", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 16, transition: "all 0.2s" }}
@@ -1288,11 +957,36 @@ export default function ToGoPage() {
       {settingsOpen && (
         <div style={modalStyle.overlay as React.CSSProperties}>
           <div style={modalStyle.card as React.CSSProperties}>
-            <h2 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Inställningar</h2>
+            <h2 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Allmänna inställningar</h2>
 
-            {/* Kategorier Section */}
+            {/* Skanningsmetod */}
+            <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #ddd" }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Skanningsmetod</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
+                <input
+                  type="checkbox"
+                  id="scannerModeCheckbox"
+                  checked={scannerMode}
+                  onChange={(e) => {
+                    setScannerMode(e.target.checked);
+                    localStorage.setItem("scannerMode", String(e.target.checked));
+                  }}
+                  style={{ width: 20, height: 20, cursor: "pointer" }}
+                />
+                <label htmlFor="scannerModeCheckbox" style={{ flex: 1, cursor: "pointer", fontSize: "0.95em" }}>
+                  <strong>{scannerMode ? "📱 Handskanner" : "⌨️ Manuell inmatning"}</strong>
+                  <div style={{ fontSize: "0.85em", color: "#666", marginTop: 4 }}>
+                    {scannerMode 
+                      ? "Använd en handskanner för att scanna EAN-koder" 
+                      : "Mata in EAN-koder manuellt via tangentbordet"}
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Avdelningar/Kategorier Section */}
             <div style={{ marginBottom: 24 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Kategorier</h3>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Avdelningar</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {categories.map((cat) => (
                   <div key={cat.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
@@ -1311,7 +1005,7 @@ export default function ToGoPage() {
                               await refresh();
                               setEditingCatId(null);
                             } catch (err) {
-                              alert("Kunde inte uppdatera kategori");
+                              alert("Kunde inte uppdatera avdelning");
                             }
                           }}
                           style={{ padding: "8px 12px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
@@ -1339,12 +1033,12 @@ export default function ToGoPage() {
                         </button>
                         <button
                           onClick={async () => {
-                            if (!confirm(`Ta bort "${cat.name}"?`)) return;
+                            if (!confirm(`Ta bort avdelning "${cat.name}"?`)) return;
                             try {
                               await deleteCategory(cat.id);
                               await refresh();
                             } catch (err) {
-                              alert("Kunde inte ta bort kategori");
+                              alert("Kunde inte ta bort avdelning");
                             }
                           }}
                           style={{ padding: "6px 10px", fontSize: "0.8em", background: "#E4002B", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
@@ -1362,24 +1056,24 @@ export default function ToGoPage() {
                 <input
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="Ny kategorinamn"
+                  placeholder="Ny avdelningsnamn"
                   style={{ flex: 1, padding: "10px", borderRadius: 4, border: "2px solid #E4002B", fontSize: "0.95em" }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      // Add new category
+                      // Skapa kategori via onclick nedan
                     }
                   }}
                 />
                 <button
                   onClick={async () => {
-                    if (!newCatName.trim()) return alert("Skriv kategorinamn");
+                    if (!newCatName.trim()) return alert("Skriv avdelningsnamn");
                     try {
                       await createCategory(newCatName);
                       await refresh();
                       setNewCatName("");
                     } catch (err) {
-                      alert("Kunde inte lägga till kategori");
+                      alert("Kunde inte lägga till avdelning");
                     }
                   }}
                   style={{ padding: "10px 16px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
