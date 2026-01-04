@@ -295,22 +295,35 @@ export default function ToGoPage() {
         return;
       }
 
-      // Start camera stream directly using getUserMedia
+      // Start camera stream with better focus settings
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: "environment" } } 
+        video: { 
+          facingMode: { ideal: "environment" },
+          focusMode: { ideal: "continuous" } as any,
+          focusDistance: 0,
+          torch: false
+        } as any
       });
 
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
-      // Start barcode reader with a small delay to ensure video is playing
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Start barcode reader with a delay to ensure video is playing
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       readerRef.current = new BrowserMultiFormatReader();
       const reader = readerRef.current;
 
-      await reader.decodeFromVideoElement(videoRef.current, (result, _err) => {
+      // Configure hints for better barcode detection
+      const hints = new Map();
+      hints.set(0, [1, 12, 13]); // BarcodeFormat: CODE_128, EAN_13, EAN_8
+      reader.setHints(hints);
+
+      console.log("Barcode scanner started, waiting for codes...");
+
+      await reader.decodeFromVideoElement(videoRef.current, (result, err) => {
         if (result) {
+          console.log("Barcode detected:", result.getText());
           handleScanSubmit(result.getText());
         }
       });
