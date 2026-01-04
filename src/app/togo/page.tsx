@@ -707,6 +707,14 @@ export default function ToGoPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Spara & lägg till button under antalet */}
+              <button 
+                onClick={saveNewProduct} 
+                style={{ width: "100%", padding: 14, marginTop: 12, fontSize: 16, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+              >
+                ✓ Lägg till
+              </button>
             </div>
 
             {/* Redigerbara fält - mindre och lite mer kompakt */}
@@ -872,19 +880,16 @@ export default function ToGoPage() {
               </select>
             </div>
 
-            {/* Spara och Avbryt - längst ned */}
+            {/* Avbryt - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => {
                   setModalOpen(false);
                   scanRef.current?.focus();
                 }}
-                style={{ padding: 12, flex: 1, background: "#ccc", color: "#333", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer" }}
+                style={{ padding: 12, width: "100%", background: "#ccc", color: "#333", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer" }}
               >
                 Avbryt
-              </button>
-              <button onClick={saveNewProduct} style={{ padding: 12, flex: 1, fontSize: 16, fontWeight: 600 }}>
-                ✓ Spara & lägg till
               </button>
             </div>
 
