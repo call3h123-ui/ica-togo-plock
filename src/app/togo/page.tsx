@@ -283,41 +283,62 @@ export default function ToGoPage() {
 
   async function startCamera() {
     setCamOn(true);
-    readerRef.current = new BrowserMultiFormatReader();
-    const reader = readerRef.current;
 
     try {
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const backCam = devices.find((d) => /back|rear|environment/i.test(d.label)) ?? devices[0];
-
-      if (!backCam) {
-        alert("Ingen kamera funnen");
+      // Get video element
+      if (!videoRef.current) {
+        alert("Kunde inte hitta videoelement");
         setCamOn(false);
         return;
       }
 
-      // Wait for video element to be ready
-      if (videoRef.current) {
-        videoRef.current.onloadedmetadata = () => {
-          // Video is ready, start decoding
-        };
-      }
+      // Start camera stream directly using getUserMedia
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { ideal: "environment" } } 
+      });
 
-      await reader.decodeFromVideoDevice(backCam.deviceId, videoRef.current!, (result, _err) => {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(err => console.error("Video play error:", err));
+
+      // Start barcode reader with a small delay to ensure video is playing
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      readerRef.current = new BrowserMultiFormatReader();
+      const reader = readerRef.current;
+
+      await reader.decodeFromVideoElement(videoRef.current, (result, _err) => {
         if (result) {
           handleScanSubmit(result.getText());
         }
       });
     } catch (err) {
       console.error("Camera error:", err);
-      alert("Kunde inte starta kamera: " + (err instanceof Error ? err.message : "Okänt fel"));
+      let errorMsg = "Okänt fel";
+      if (err instanceof Error) {
+        if (err.name === "NotAllowedError") {
+          errorMsg = "Tillåta kameratillgång i webbläsarinställningar";
+        } else if (err.name === "NotFoundError") {
+          errorMsg = "Ingen kamera funnen";
+        } else {
+          errorMsg = err.message;
+        }
+      }
+      alert("Kunde inte starta kamera: " + errorMsg);
       setCamOn(false);
     }
   }
 
   async function stopCamera() {
     setCamOn(false);
-    readerRef.current = null;
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    if (readerRef.current) {
+      readerRef.current.reset();
+      readerRef.current = null;
+    }
   }
 
   const unpicked = rows.filter((r) => !r.is_picked && r.qty > 0);
