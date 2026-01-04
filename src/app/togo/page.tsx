@@ -435,6 +435,19 @@ export default function ToGoPage() {
           </button>
         )}
       </div>
+
+      {camOn && !modalOpen && (
+        <div style={{ marginBottom: "clamp(12px, 3vw, 16px)", background: "#f5f5f5", padding: "clamp(10px, 2vw, 12px)", borderRadius: 12 }}>
+          <video 
+            ref={videoRef} 
+            autoPlay={true}
+            playsInline={true}
+            style={{ width: "100%", maxWidth: 400, borderRadius: 10, border: "3px solid #E4002B" }} 
+            muted 
+          />
+        </div>
+      )}
+
       <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
         <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)" }}>Tillagda artiklar ({unpicked.length})</h2>
         {unpicked.length === 0 ? (
