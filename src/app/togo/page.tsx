@@ -467,45 +467,33 @@ export default function ToGoPage() {
           
           console.log("📋 Camera capabilities:", {
             focusMode: capabilities.focusMode,
-            focusDistance: capabilities.focusDistance,
-            torch: capabilities.torch,
-            whiteBalanceMode: capabilities.whiteBalanceMode
+            torch: capabilities.torch
           });
+          
+          // Simple focus strategies - just focusMode, no focusDistance (doesn't work reliably)
+          const focusStrategies = [
+            { focusMode: 'continuous' },
+            { focusMode: 'auto' }
+          ];
           
           let focusApplied = false;
           
-          // Get focus distance range if available
-          const focusDistanceRange = capabilities.focusDistance;
-          let focusDistances: number[] = [0];
-          
-          if (focusDistanceRange) {
-            if (Array.isArray(focusDistanceRange)) {
-              // It's a range [min, max]
-              const [min, max] = focusDistanceRange;
-              console.log(`focusDistance range: ${min} to ${max}`);
-              // Try values from very close to medium distance
-              focusDistances = [min, 1, 5, 10, 20, 50, max].filter(v => v >= min && v <= max);
-            } else if (focusDistanceRange.min !== undefined && focusDistanceRange.max !== undefined) {
-              // It's an object with min/max
-              const min = focusDistanceRange.min;
-              const max = focusDistanceRange.max;
-              console.log(`focusDistance range: ${min} to ${max}`);
-              focusDistances = [min, 1, 5, 10, 20, 50, max].filter(v => v >= min && v <= max);
+          for (const strategy of focusStrategies) {
+            try {
+              await videoTrack.applyConstraints({
+                advanced: [strategy as any]
+              });
+              console.log("✓ Focus mode applied:", strategy.focusMode);
+              focusApplied = true;
+              break;
+            } catch (e) {
+              console.log("⚠️ Focus mode failed, trying next:", e);
             }
           }
           
-          // Try multiple focus strategies in order of aggressiveness
-          const focusStrategies: any[] = [];
-          
-          // Add strategies for each focus distance
-          focusDistances.forEach(distance => {
-            focusStrategies.push({ focusMode: 'auto', focusDistance: distance });
-            focusStrategies.push({ focusMode: 'continuous', focusDistance: distance });
-          });
-          
-          // Add focus mode only strategies
-          focusStrategies.push({ focusMode: 'auto' });
-          focusStrategies.push({ focusMode: 'continuous' });
+          if (!focusApplied) {
+            console.log("⚠️ Could not set focus mode");
+          }
           
           // Try torch for better lighting
           if (capabilities.torch && capabilities.torch.includes('on')) {
@@ -519,24 +507,6 @@ export default function ToGoPage() {
               console.log("⚠️ Could not enable torch:", e);
             }
           }
-          
-          // Try each focus strategy
-          for (const strategy of focusStrategies) {
-            try {
-              await videoTrack.applyConstraints({
-                advanced: [strategy]
-              });
-              console.log("✓ Focus strategy applied:", strategy);
-              focusApplied = true;
-              break; // Stop if successful
-            } catch (e) {
-              // Continue to next strategy
-            }
-          }
-          
-          if (!focusApplied) {
-            console.log("⚠️ No focus strategy worked, continuing anyway");
-          }
         } else {
           console.log("⚠️ getCapabilities not supported on this device");
         }
@@ -545,15 +515,9 @@ export default function ToGoPage() {
       // Step 4: Start video playback
       videoRef.current.play().catch(err => console.error("Video play error:", err));
 
-      // Give more time for autofocus to kick in on Android
-      console.log("⏳ Waiting for autofocus (3 seconds)...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Try to trigger focus manually by resizing/refreshing
-      if (videoRef.current) {
-        videoRef.current.style.filter = 'brightness(1)';
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      // Short wait for camera to initialize
+      console.log("⏳ Camera initializing...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       console.log("✓ Camera ready, starting barcode detection");
 
@@ -604,6 +568,32 @@ export default function ToGoPage() {
     }
     if (readerRef.current) {
       readerRef.current = null;
+    }
+  }
+
+  function handleTapToFocus() {
+    if (!videoRef.current?.srcObject) return;
+    
+    const stream = videoRef.current.srcObject as MediaStream;
+    const videoTrack = stream.getVideoTracks()[0];
+    
+    if (!videoTrack) return;
+    
+    console.log("🔍 Tap-to-focus triggered");
+    
+    // Try to apply continuous autofocus
+    if (typeof videoTrack.getCapabilities === 'function') {
+      try {
+        videoTrack.applyConstraints({
+          advanced: [{ focusMode: 'auto' } as any]
+        }).then(() => {
+          console.log("✓ Auto focus triggered");
+        }).catch(e => {
+          console.log("Could not trigger auto focus:", e);
+        });
+      } catch (e) {
+        console.log("Error in tap to focus:", e);
+      }
     }
   }
 
@@ -761,7 +751,8 @@ export default function ToGoPage() {
               ref={videoRef} 
               autoPlay={true}
               playsInline={true}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} 
+              onClick={handleTapToFocus}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }} 
               muted 
             />
             {/* Scanner frame overlay */}
@@ -806,6 +797,9 @@ export default function ToGoPage() {
               fontWeight: 500
             }}
           />
+          <div style={{ marginTop: "clamp(12px, 2vw, 16px)", color: "#ccc", fontSize: "clamp(0.8em, 1.5vw, 0.9em)", textAlign: "center" }}>
+            💡 Tips: Tryck på videon för att fokusera manuellt
+          </div>
         </div>
       )}
 
