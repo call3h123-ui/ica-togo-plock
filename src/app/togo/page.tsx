@@ -190,7 +190,7 @@ export default function ToGoPage() {
       setScanValue("");
 
       // If modal is open (modalOpen is true), save the current product first
-      if (modalOpen && newEan && newName.trim()) {
+      if (modalOpen && newEan && newName.trim() && newBrand.trim() && newWeight) {
         console.log("handleScanSubmit -> modal open, saving current product first");
         const catId = newCat || defaultCatId;
         // Check if product exists
@@ -281,6 +281,8 @@ export default function ToGoPage() {
 
   async function saveNewProduct() {
     if (!newName.trim()) return alert("Skriv produktnamn.");
+    if (!newBrand.trim()) return alert("Skriv varumärke.");
+    if (!newWeight) return alert("Skriv vikt.");
 
     const catId = newCat || defaultCatId;
     try {
