@@ -581,10 +581,23 @@ export default function ToGoPage() {
               handleScanSubmit((e.target as HTMLInputElement).value);
             }
           }}
+          onMouseDown={(e) => {
+            // Prevent focus/keyboard when blocking is enabled
+            if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
+              e.preventDefault();
+              return;
+            }
+          }}
+          onTouchStart={(e) => {
+            // Prevent focus/keyboard on touch when blocking is enabled
+            if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
+              e.preventDefault();
+              return;
+            }
+          }}
           placeholder="Skanna EAN här"
           type="tel"
           inputMode="numeric"
-          readOnly={scannerMode || keyboardBlocked}
           autoComplete="off"
           pattern="[0-9]*"
           style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
@@ -704,10 +717,23 @@ export default function ToGoPage() {
                   handleScanSubmit((e.target as HTMLInputElement).value);
                 }
               }}
+              onMouseDown={(e) => {
+                // Prevent focus/keyboard when blocking is enabled
+                if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
+                  e.preventDefault();
+                  return;
+                }
+              }}
+              onTouchStart={(e) => {
+                // Prevent focus/keyboard on touch when blocking is enabled
+                if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
+                  e.preventDefault();
+                  return;
+                }
+              }}
               placeholder="Scanna ny vara"
               type="tel"
               inputMode="numeric"
-              readOnly={scannerMode || keyboardBlocked}
               autoComplete="off"
               pattern="[0-9]*"
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
