@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"store" | "admin">("store");
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
 
   // Load available stores on mount
   useEffect(() => {
@@ -98,51 +100,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f5", padding: "20px" }}>
-      <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-        
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#e3000b", padding: "20px" }}>
+      <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
         
         <img 
           src="/ica-logo.webp" 
           alt="ICA Logo" 
-          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain" }}
+          onClick={() => {
+            setLogoClickCount(logoClickCount + 1);
+            if (logoClickCount + 1 >= 5) {
+              setShowAdmin(!showAdmin);
+              setLogoClickCount(0);
+            }
+          }}
+          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain", cursor: "pointer" }}
         />
 
-        {/* Mode toggle */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 30 }}>
-          <button
-            onClick={() => setMode("store")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              background: mode === "store" ? "#E4002B" : "#f0f0f0",
-              color: mode === "store" ? "white" : "#333",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-            }}
-          >
-            Butik
-          </button>
-          <button
-            onClick={() => setMode("admin")}
-            style={{
-              flex: 1,
-              padding: "10px 16px",
-              background: mode === "admin" ? "#E4002B" : "#f0f0f0",
-              color: mode === "admin" ? "white" : "#333",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-            }}
-          >
-            Admin
-          </button>
-        </div>
+        {/* Mode toggle - Only show if admin mode is unlocked */}
+        {showAdmin && (
+          <div style={{ display: "flex", gap: 10, marginBottom: 30 }}>
+            <button
+              onClick={() => setMode("store")}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                background: mode === "store" ? "#e3000b" : "#f0f0f0",
+                color: mode === "store" ? "white" : "#333",
+                border: "none",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              Butik
+            </button>
+            <button
+              onClick={() => setMode("admin")}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                background: mode === "admin" ? "#e3000b" : "#f0f0f0",
+                color: mode === "admin" ? "white" : "#333",
+                border: "none",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              Admin
+            </button>
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -159,6 +169,7 @@ export default function LoginPage() {
         )}
 
         {/* Store Login */}
+        {/* Store Login Form */}
         {mode === "store" && (
           <form onSubmit={handleStoreLogin}>
             <div style={{ marginBottom: 20 }}>
@@ -214,7 +225,7 @@ export default function LoginPage() {
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: loading || !selectedStore ? "#ccc" : "#E4002B",
+                background: loading || !selectedStore ? "#ccc" : "#e3000b",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
@@ -258,7 +269,7 @@ export default function LoginPage() {
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: loading ? "#ccc" : "#E4002B",
+                background: loading ? "#ccc" : "#e3000b",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
