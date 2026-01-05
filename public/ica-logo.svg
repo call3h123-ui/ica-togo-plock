@@ -1,10 +1,10 @@
-<svg viewBox="0 0 1100 1000" xmlns="http://www.w3.org/2000/svg">
-  <!-- I shape -->
-  <rect x="50" y="150" width="180" height="700" fill="#E4002B"/>
+<svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- I -->
+  <rect x="50" y="80" width="120" height="540" fill="#E4002B" rx="10"/>
   
-  <!-- C shape -->
-  <path d="M 350 200 Q 520 200 520 500 Q 520 800 350 800 L 380 800 Q 540 800 540 500 Q 540 200 380 200 Z" fill="#E4002B"/>
+  <!-- C -->
+  <path d="M 450 100 Q 350 100 350 370 Q 350 640 450 640 L 450 560 Q 380 560 380 370 Q 380 180 450 180 Z" fill="#E4002B" stroke-width="0"/>
   
-  <!-- A shape -->
-  <path d="M 650 850 L 900 200 L 1000 200 L 750 850 Z M 720 500 L 930 500 L 825 250 Z" fill="#E4002B"/>
+  <!-- A -->
+  <path d="M 550 640 L 750 80 L 800 80 L 600 640 Z M 600 350 L 750 350 L 675 200 Z" fill="#E4002B"/>
 </svg>
