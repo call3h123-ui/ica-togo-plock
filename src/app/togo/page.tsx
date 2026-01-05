@@ -56,6 +56,7 @@ export default function ToGoPage() {
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [scanValue, setScanValue] = useState("");
   const scanRef = useRef<HTMLInputElement | null>(null);
+  const modalScanRef = useRef<HTMLInputElement | null>(null);
 
   // Ny artikel modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -205,6 +206,11 @@ export default function ToGoPage() {
         setNewBrand("");
         setNewImage("");
         setNewCat(defaultCatId);
+
+        // Focus modalScanRef when modal opens (for next scan)
+        setTimeout(() => {
+          modalScanRef.current?.focus();
+        }, 100);
 
         // Försök hämta produktinfo från extern API (Open Food Facts)
         setLoadingProduct(true);
@@ -528,7 +534,7 @@ export default function ToGoPage() {
             {/* Liten EAN-info och kamera innanför modalen */}
             <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
             <input
-              ref={scanRef}
+              ref={modalScanRef}
               value={scanValue}
               onChange={(e) => {
                 // Only allow numeric characters
@@ -542,12 +548,11 @@ export default function ToGoPage() {
                   handleScanSubmit((e.target as HTMLInputElement).value);
                 }
               }}
-              placeholder="Scanna EAN"
+              placeholder="Scanna ny vara"
               type="tel"
               inputMode={scannerMode ? "none" : "numeric"}
               autoComplete="off"
               pattern="[0-9]*"
-              readOnly={scannerMode}
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
           </div>
