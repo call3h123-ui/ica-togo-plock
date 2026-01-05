@@ -630,6 +630,10 @@ export default function ToGoPage() {
             setExpandedEditFields(true); // Öppna redigering automatiskt
             const savedCatId = typeof window !== "undefined" ? localStorage.getItem("lastSelectedCatId") : null;
             setNewCat(savedCatId && categories.find(c => c.id === savedCatId) ? savedCatId : (categories[0]?.id || ""));
+            // Fokusera på modalScanRef när modal öppnas
+            setTimeout(() => {
+              modalScanRef.current?.focus();
+            }, 100);
           }}
           style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "100px", background: "#E4002B", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
