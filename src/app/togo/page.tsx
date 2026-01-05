@@ -837,7 +837,13 @@ export default function ToGoPage() {
 
               {/* Spara & lägg till button under antalet */}
               <button 
-                onClick={saveNewProduct} 
+                onClick={() => {
+                  saveNewProduct();
+                  // Fokusera på modalScanRef efter spara för att kunna scanna nästa produkt
+                  setTimeout(() => {
+                    modalScanRef.current?.focus();
+                  }, 100);
+                }}
                 style={{ width: "100%", padding: 14, marginTop: 12, fontSize: 16, fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
               >
                 ✓ Lägg till
