@@ -85,12 +85,6 @@ export default function ToGoPage() {
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
 
-  // Scanner mode: when enabled, keyboard won't auto-focus after scan
-  const [scannerMode, setScannerMode] = useState(true);
-
-  // Keyboard block: temporarily blocks keyboard on EAN fields
-  const [keyboardBlocked, setKeyboardBlocked] = useState(false);
-
   // Banner för redan befintlig vara
   const [alreadyExistsBanner, setAlreadyExistsBanner] = useState(false);
 
@@ -190,12 +184,6 @@ export default function ToGoPage() {
   useEffect(() => {
     refresh();
     scanRef.current?.focus();
-
-    // Läs skanningsmetod från localStorage
-    const savedScannerMode = typeof window !== "undefined" ? localStorage.getItem("scannerMode") : null;
-    if (savedScannerMode !== null) {
-      setScannerMode(savedScannerMode === "true");
-    }
 
     const ch = supabase
       .channel("order_items_changes")
@@ -440,13 +428,9 @@ export default function ToGoPage() {
       setNewWeight(null);
       setScanValue(""); // Töm EAN-fältet
       
-      // Only auto-focus if NOT in scanner mode
-      // In scanner mode, keyboard shouldn't pop up between scans
-      if (!scannerMode) {
-        setTimeout(() => {
-          scanRef.current?.focus();
-        }, 100);
-      }
+      setTimeout(() => {
+        scanRef.current?.focus();
+      }, 100);
     } catch (err) {
       console.error("saveNewProduct error:", err);
       let msg = "Fel vid sparande";
@@ -581,20 +565,6 @@ export default function ToGoPage() {
               handleScanSubmit((e.target as HTMLInputElement).value);
             }
           }}
-          onMouseDown={(e) => {
-            // Prevent focus/keyboard when blocking is enabled
-            if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
-              e.preventDefault();
-              return;
-            }
-          }}
-          onTouchStart={(e) => {
-            // Prevent focus/keyboard on touch when blocking is enabled
-            if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
-              e.preventDefault();
-              return;
-            }
-          }}
           placeholder="Skanna EAN här"
           type="tel"
           inputMode="numeric"
@@ -621,22 +591,6 @@ export default function ToGoPage() {
           onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
           ➕ Manuell artikel
-        </button>
-
-        <button 
-          onClick={() => {
-            setKeyboardBlocked(!keyboardBlocked);
-            if (!keyboardBlocked) {
-              // Auto-hide keyboard block after 5 minutes
-              setTimeout(() => setKeyboardBlocked(false), 5 * 60 * 1000);
-            }
-          }}
-          style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "100px", background: keyboardBlocked ? "#4CAF50" : "#999", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          title={keyboardBlocked ? "Tangentbord blockerat - klicka för att aktivera" : "Blockera tangentbord för scanning"}
-        >
-          {keyboardBlocked ? "🔐 Tangentbord av" : "⌨ Tangentbord på"}
         </button>
       </div>
 
@@ -715,20 +669,6 @@ export default function ToGoPage() {
                   e.preventDefault();
                   e.stopPropagation();
                   handleScanSubmit((e.target as HTMLInputElement).value);
-                }
-              }}
-              onMouseDown={(e) => {
-                // Prevent focus/keyboard when blocking is enabled
-                if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
-                  e.preventDefault();
-                  return;
-                }
-              }}
-              onTouchStart={(e) => {
-                // Prevent focus/keyboard on touch when blocking is enabled
-                if ((scannerMode || keyboardBlocked) && document.activeElement !== e.currentTarget) {
-                  e.preventDefault();
-                  return;
                 }
               }}
               placeholder="Scanna ny vara"
@@ -1124,31 +1064,6 @@ export default function ToGoPage() {
         <div style={modalStyle.overlay as React.CSSProperties}>
           <div style={modalStyle.card as React.CSSProperties}>
             <h2 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Allmänna inställningar</h2>
-
-            {/* Skanningsmetod */}
-            <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #ddd" }}>
-              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Skanningsmetod</h3>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
-                <input
-                  type="checkbox"
-                  id="scannerModeCheckbox"
-                  checked={scannerMode}
-                  onChange={(e) => {
-                    setScannerMode(e.target.checked);
-                    localStorage.setItem("scannerMode", String(e.target.checked));
-                  }}
-                  style={{ width: 20, height: 20, cursor: "pointer" }}
-                />
-                <label htmlFor="scannerModeCheckbox" style={{ flex: 1, cursor: "pointer", fontSize: "0.95em" }}>
-                  <strong>{scannerMode ? "📱 Handskanner" : "⌨️ Manuell inmatning"}</strong>
-                  <div style={{ fontSize: "0.85em", color: "#666", marginTop: 4 }}>
-                    {scannerMode 
-                      ? "Använd en handskanner för att scanna EAN-koder" 
-                      : "Mata in EAN-koder manuellt via tangentbordet"}
-                  </div>
-                </label>
-              </div>
-            </div>
 
             {/* Avdelningar/Kategorier Section */}
             <div style={{ marginBottom: 24 }}>
