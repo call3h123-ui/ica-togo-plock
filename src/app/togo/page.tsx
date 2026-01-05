@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import * as XLSX from "xlsx";
 
 function cleanEan(raw: string) {
   return raw.trim().replace(/\s/g, "");
@@ -90,7 +91,85 @@ export default function ToGoPage() {
   // Banner för redan befintlig vara
   const [alreadyExistsBanner, setAlreadyExistsBanner] = useState(false);
 
+  // Excel import
+  const [excelLoading, setExcelLoading] = useState(false);
+
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
+
+  async function handleExcelUpload(file: File) {
+    try {
+      setExcelLoading(true);
+      
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) return;
+          
+          const workbook = XLSX.read(data, { type: "array" });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          
+          let createdCount = 0;
+          
+          // Gå igenom varje rad (börja från rad 2 för att hoppa över headers)
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const productName = String(row[0] || "").trim();
+            const brand = String(row[1] || "").trim();
+            const weight = String(row[2] || "").trim();
+            const categoryName = String(row[3] || "").trim();
+            
+            // Hoppa över tomma rader
+            if (!productName) continue;
+            
+            // Hitta kategori-ID baserat på namn
+            let categoryId = defaultCatId;
+            if (categoryName) {
+              const cat = categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+              if (cat) {
+                categoryId = cat.id;
+              }
+            }
+            
+            // Generera en EAN (kan anpassas senare)
+            const ean = `EXCEL-${Date.now()}-${i}`;
+            
+            try {
+              const existing = await ensureProduct(ean);
+              if (!existing) {
+                await createProduct({
+                  ean,
+                  name: productName,
+                  brand: brand || null,
+                  default_category_id: categoryId,
+                  weight: weight || null,
+                  image_url: null
+                });
+                createdCount++;
+              }
+            } catch (err) {
+              console.error(`Kunde inte skapa produkt ${productName}:`, err);
+            }
+          }
+          
+          alert(`Importerat ${createdCount} produkter från Excel-filen`);
+          await refresh();
+          setExcelLoading(false);
+        } catch (err) {
+          console.error("Excel parsing error:", err);
+          alert("Fel vid läsning av Excel-filen");
+          setExcelLoading(false);
+        }
+      };
+      
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error("Excel upload error:", err);
+      alert("Fel vid uppladdning av Excel-filen");
+      setExcelLoading(false);
+    }
+  }
 
   async function refresh() {
     const [cats, ord] = await Promise.all([getCategories(), getOrderRows()]);
@@ -1111,6 +1190,44 @@ export default function ToGoPage() {
                 >
                   + Lägg till
                 </button>
+              </div>
+            </div>
+
+            {/* Excel Import Section */}
+            <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #ddd" }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Importera från Excel</h3>
+              <div style={{ padding: "12px", background: "#f9f9f9", borderRadius: 8, marginBottom: 12 }}>
+                <p style={{ margin: "0 0 10px 0", fontSize: "0.9em", color: "#666" }}>
+                  Ladda upp en Excel-fil med följande kolumner:<br/>
+                  <strong>A:</strong> Produktnamn | <strong>B:</strong> Varumärke | <strong>C:</strong> Vikt | <strong>D:</strong> Avdelning
+                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleExcelUpload(file);
+                      // Rensa file input
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                  disabled={excelLoading}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    borderRadius: 4,
+                    border: "1px solid #ddd",
+                    fontSize: "0.9em",
+                    cursor: excelLoading ? "not-allowed" : "pointer",
+                    opacity: excelLoading ? 0.6 : 1
+                  }}
+                />
+                {excelLoading && (
+                  <div style={{ marginTop: 8, fontSize: "0.85em", color: "#0066cc" }}>
+                    ⏳ Importerar produkter...
+                  </div>
+                )}
               </div>
             </div>
 
