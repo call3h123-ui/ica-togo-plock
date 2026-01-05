@@ -569,9 +569,15 @@ export default function ToGoPage() {
               handleScanSubmit((e.target as HTMLInputElement).value);
             }
           }}
+          onClick={(e) => {
+            if (scannerMode) {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="Skanna EAN här"
           type="tel"
-          inputMode="numeric"
+          inputMode={scannerMode ? "none" : "numeric"}
           autoComplete="off"
           pattern="[0-9]*"
           style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
