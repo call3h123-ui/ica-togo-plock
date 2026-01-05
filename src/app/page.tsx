@@ -8,9 +8,9 @@ export default function Home() {
       <div style={{ maxWidth: 500, width: "100%", maxHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ textAlign: "center", marginBottom: "clamp(30px, 8vw, 40px)" }}>
           <img 
-            src="/ica-logo.svg" 
+            src="/ica-logo.webp" 
             alt="ICA Logo" 
-            style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "20px" }}
+            style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "20px", objectFit: "contain" }}
           />
           <p style={{ fontSize: "clamp(1em, 3vw, 1.2em)", color: "#666", fontWeight: 500 }}>Plocklista mellan butiker</p>
         </div>

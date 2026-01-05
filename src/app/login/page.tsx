@@ -103,9 +103,9 @@ export default function LoginPage() {
         
         
         <img 
-          src="/ica-logo.svg" 
+          src="/ica-logo.webp" 
           alt="ICA Logo" 
-          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px" }}
+          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain" }}
         />
 
         {/* Mode toggle */}
