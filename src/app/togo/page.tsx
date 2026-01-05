@@ -584,12 +584,6 @@ export default function ToGoPage() {
               (e.target as HTMLInputElement).blur();
             }
           }}
-          onFocus={(e) => {
-            if (scannerMode) {
-              e.preventDefault();
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
           onTouchStart={(e) => {
             if (scannerMode) {
               e.preventDefault();
@@ -599,7 +593,6 @@ export default function ToGoPage() {
           placeholder="Skanna EAN här"
           type="tel"
           inputMode={scannerMode ? "none" : "numeric"}
-          readOnly={scannerMode}
           autoComplete="off"
           pattern="[0-9]*"
           style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
