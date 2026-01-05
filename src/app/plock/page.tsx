@@ -110,14 +110,31 @@ export default function PlockPage() {
   const [me, setMe] = useState<string>("");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [storeId, setStoreId] = useState<string>("");
 
   async function refresh() {
-    const [cats, ord] = await Promise.all([getCategories(), getOrderRows()]);
+    const [cats, ord] = await Promise.all([
+      getCategories(storeId),
+      getOrderRows(storeId)
+    ]);
     setCategories(cats);
     setRows(ord);
   }
 
   useEffect(() => {
+    // Read storeId from localStorage
+    if (typeof window !== "undefined") {
+      const savedStoreId = localStorage.getItem("storeId");
+      if (savedStoreId) {
+        setStoreId(savedStoreId);
+      }
+    }
+  }, []);
+
+  // Separate effect for refresh that depends on storeId
+  useEffect(() => {
+    if (!storeId) return;
+
     refresh();
     supabase.auth.getUser().then(({ data }) => setMe(data.user?.email ?? "okänd"));
     
@@ -134,7 +151,7 @@ export default function PlockPage() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [storeId]);
 
   const { todo, picked } = useMemo(() => {
     const t = rows.filter((r) => !r.is_picked && r.qty > 0);
@@ -156,12 +173,12 @@ export default function PlockPage() {
   const pickedGroups = useMemo(() => groupByCat(picked), [picked]);
 
   async function toggle(ean: string, isPicked: boolean) {
-    await rpcPicked(ean, isPicked, me);
+    await rpcPicked(ean, isPicked, me, storeId);
     await refresh();
   }
 
   async function clearPicked() {
-    const n = await rpcClearPicked();
+    const n = await rpcClearPicked(storeId);
     alert(`Rensade ${n} plockade rader`);
     await refresh();
   }
