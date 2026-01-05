@@ -192,6 +192,9 @@ export default function ToGoPage() {
           const message = `Importerat ${createdCount} nya och uppdaterat ${updatedCount} befintliga produkter`;
           alert(message);
           console.log(message);
+          
+          await refresh();
+          setExcelLoading(false);
         } catch (err) {
           console.error("Excel parsing error:", err);
           alert("Fel vid läsning av Excel-filen");
