@@ -107,6 +107,9 @@ export default function ToGoPage() {
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           
+          console.log("Total rows in Excel:", rows.length);
+          console.log("All rows:", rows);
+          
           let createdCount = 0;
           let updatedCount = 0;
           
@@ -123,7 +126,7 @@ export default function ToGoPage() {
             
             // Hoppa över tomma rader
             if (!ean || !productName) {
-              console.log(`Row ${i} skipped - missing EAN or productName`);
+              console.log(`Row ${i} skipped - EAN: "${ean}", ProductName: "${productName}"`);
               continue;
             }
             
