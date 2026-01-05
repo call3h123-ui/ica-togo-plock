@@ -56,6 +56,8 @@ export default function ToGoPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [scanValue, setScanValue] = useState("");
+  const [storeId, setStoreId] = useState<string>("");
+  const [storeName, setStoreName] = useState<string>("");
   const scanRef = useRef<HTMLInputElement | null>(null);
   const modalScanRef = useRef<HTMLInputElement | null>(null);
 
@@ -214,7 +216,10 @@ export default function ToGoPage() {
   }
 
   async function refresh() {
-    const [cats, ord] = await Promise.all([getCategories(), getOrderRows()]);
+    const [cats, ord] = await Promise.all([
+      getCategories(storeId),
+      getOrderRows(storeId)
+    ]);
     setCategories(cats);
     setRows(ord);
     // Återhämta sparad kategori från localStorage eller använd första
@@ -227,6 +232,21 @@ export default function ToGoPage() {
   }
 
   useEffect(() => {
+    // Read storeId from localStorage
+    if (typeof window !== "undefined") {
+      const savedStoreId = localStorage.getItem("storeId");
+      const savedStoreName = localStorage.getItem("storeName");
+      if (savedStoreId) {
+        setStoreId(savedStoreId);
+        setStoreName(savedStoreName || "");
+      }
+    }
+  }, []);
+
+  // Separate effect for refresh that depends on storeId
+  useEffect(() => {
+    if (!storeId) return;
+
     refresh();
     scanRef.current?.focus();
 
@@ -241,7 +261,7 @@ export default function ToGoPage() {
       supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storeId]);
 
   // Start camera for image capture when cameraForImage is true
   useEffect(() => {
@@ -303,7 +323,7 @@ export default function ToGoPage() {
           // Product exists - update it
           await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null });
         }
-        await rpcIncrement(newEan, catId, newQty);
+        await rpcIncrement(newEan, catId, newQty, storeId);
         await refresh();
         // Reset modal fields for new product
         setNewName("");
@@ -426,10 +446,10 @@ export default function ToGoPage() {
         
         // If product already in order, update quantity instead of incrementing
         if (existingOrderItem) {
-          await rpcSetQty(newEan, catId, newQty);
+          await rpcSetQty(newEan, catId, newQty, storeId);
         } else {
           // New to order - increment quantity
-          await rpcIncrement(newEan, catId, newQty);
+          await rpcIncrement(newEan, catId, newQty, storeId);
         }
       } else {
         // No EAN - create a manual order item without product database entry
@@ -1217,7 +1237,7 @@ export default function ToGoPage() {
                   onClick={async () => {
                     if (!newCatName.trim()) return alert("Skriv avdelningsnamn");
                     try {
-                      await createCategory(newCatName);
+                      await createCategory(newCatName, storeId);
                       await refresh();
                       setNewCatName("");
                     } catch (err) {
