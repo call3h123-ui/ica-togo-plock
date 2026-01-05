@@ -1,36 +1,51 @@
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 
-export async function getCategories(): Promise<Category[]> {
-  const { data, error } = await supabase
+export async function getCategories(storeId?: string): Promise<Category[]> {
+  let query = supabase
     .from("categories")
     .select("*")
     .order("sort_index", { ascending: true });
 
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data as Category[];
 }
 
-export async function getOrderRows(): Promise<OrderRow[]> {
+export async function getOrderRows(storeId?: string): Promise<OrderRow[]> {
   try {
-    // Try with explicit column selection first (includes brand and weight)
-    const { data, error } = await supabase
+    let query = supabase
       .from("order_items")
       .select("*, product:products(ean,name,brand,image_url,default_category_id,weight), category:categories(*)")
       .order("is_picked", { ascending: true })
       .order("updated_at", { ascending: false });
 
+    if (storeId) {
+      query = query.eq("store_id", storeId);
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
     return data as OrderRow[];
   } catch (err: any) {
-    // Fallback: try with wildcard
     const msg = err?.message || String(err);
     if (msg.includes("weight") || msg.includes("brand") || msg.includes("Could not find")) {
-      const { data, error } = await supabase
+      let query = supabase
         .from("order_items")
         .select("*, product:products(ean,name,brand,image_url,default_category_id,weight), category:categories(*)")
         .order("is_picked", { ascending: true })
         .order("updated_at", { ascending: false });
+
+      if (storeId) {
+        query = query.eq("store_id", storeId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as OrderRow[];
     }
@@ -113,44 +128,65 @@ export async function updateProduct(ean: string, payload: { name?: string; brand
   }
 }
 
-export async function rpcIncrement(ean: string, categoryId: string, delta: number) {
-  const { data, error } = await supabase.rpc("increment_order_item", { p_ean: ean, p_category_id: categoryId, p_delta: delta });
+export async function rpcIncrement(ean: string, categoryId: string, delta: number, storeId?: string) {
+  const { data, error } = await supabase.rpc("increment_order_item", { 
+    p_ean: ean, 
+    p_category_id: categoryId, 
+    p_delta: delta,
+    p_store_id: storeId || null
+  });
   if (error) throw error;
   return data;
 }
 
-export async function rpcSetQty(ean: string, categoryId: string, qty: number) {
-  const { data, error } = await supabase.rpc("set_order_item_qty", { p_ean: ean, p_category_id: categoryId, p_qty: qty });
+export async function rpcSetQty(ean: string, categoryId: string, qty: number, storeId?: string) {
+  const { data, error } = await supabase.rpc("set_order_item_qty", { 
+    p_ean: ean, 
+    p_category_id: categoryId, 
+    p_qty: qty,
+    p_store_id: storeId || null
+  });
   if (error) throw error;
   return data;
 }
 
-export async function rpcPicked(ean: string, isPicked: boolean, pickedBy: string) {
-  const { data, error } = await supabase.rpc("set_picked", { p_ean: ean, p_is_picked: isPicked, p_picked_by: pickedBy });
+export async function rpcPicked(ean: string, isPicked: boolean, pickedBy: string, storeId?: string) {
+  const { data, error } = await supabase.rpc("set_picked", { 
+    p_ean: ean, 
+    p_is_picked: isPicked, 
+    p_picked_by: pickedBy,
+    p_store_id: storeId || null
+  });
   if (error) throw error;
   return data;
 }
 
-export async function rpcClearPicked() {
-  const { data, error } = await supabase.rpc("clear_picked");
+export async function rpcClearPicked(storeId?: string) {
+  const { data, error } = await supabase.rpc("clear_picked", { p_store_id: storeId || null });
   if (error) throw error;
   return data as number;
 }
 
-export async function createCategory(name: string): Promise<Category> {
-  // Get the highest sort_index
-  const { data: cats, error: getError } = await supabase
+export async function createCategory(name: string, storeId?: string): Promise<Category> {
+  // Get the highest sort_index for this store (if storeId provided)
+  let query = supabase
     .from("categories")
     .select("sort_index")
     .order("sort_index", { ascending: false })
     .limit(1);
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data: cats, error: getError } = await query;
 
   if (getError) throw getError;
   const maxIndex = cats && cats.length > 0 ? cats[0].sort_index : 0;
 
   const { data, error } = await supabase
     .from("categories")
-    .insert({ name, sort_index: maxIndex + 1 })
+    .insert({ name, sort_index: maxIndex + 1, store_id: storeId || null })
     .select()
     .maybeSingle();
 

@@ -54,19 +54,11 @@ for each row execute function public.hash_admin_password();
 
 -- Add store_id to categories (NULL for now, will populate existing)
 alter table if exists public.categories
-add column store_id uuid references public.stores(id) on delete cascade;
+add column if not exists store_id uuid references public.stores(id) on delete cascade;
 
 -- Add store_id to order_items
 alter table if exists public.order_items
-add column store_id uuid references public.stores(id) on delete cascade;
-
--- Add brand column to products if it doesn't exist
-alter table if exists public.products
-add column brand text default '';
-
--- Add weight column to products if it doesn't exist
-alter table if exists public.products
-add column weight text default '';
+add column if not exists store_id uuid references public.stores(id) on delete cascade;
 
 -- Update existing categories and order_items to have a default store
 -- First, create default stores for migration
