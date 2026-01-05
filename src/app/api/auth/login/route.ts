@@ -13,9 +13,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify password using the RPC function
+    // First, get the store name from the storeId
+    const { data: storeData, error: storeError } = await supabase
+      .from("stores")
+      .select("name")
+      .eq("id", storeId)
+      .maybeSingle();
+
+    if (storeError || !storeData) {
+      return NextResponse.json(
+        { message: "Butiken hittades inte" },
+        { status: 401 }
+      );
+    }
+
+    // Verify password using the RPC function with store name
     const { data, error } = await supabase.rpc("verify_store_login", {
-      p_store_name: storeId,
+      p_store_name: storeData.name,
       p_password: password,
     });
 
@@ -37,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Return success - client will store in localStorage
     return NextResponse.json({
       success: true,
-      storeId: data,
+      storeId: storeId,
     });
   } catch (err) {
     console.error("Login error:", err);
