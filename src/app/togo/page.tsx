@@ -112,13 +112,14 @@ export default function ToGoPage() {
           // Gå igenom varje rad (börja från rad 2 för att hoppa över headers)
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            const productName = String(row[0] || "").trim();
-            const brand = String(row[1] || "").trim();
-            const weight = String(row[2] || "").trim();
-            const categoryName = String(row[3] || "").trim();
+            const ean = String(row[0] || "").trim();
+            const productName = String(row[1] || "").trim();
+            const brand = String(row[2] || "").trim();
+            const weight = String(row[3] || "").trim();
+            const categoryName = String(row[4] || "").trim();
             
             // Hoppa över tomma rader
-            if (!productName) continue;
+            if (!ean || !productName) continue;
             
             // Hitta kategori-ID baserat på namn
             let categoryId = defaultCatId;
@@ -128,9 +129,6 @@ export default function ToGoPage() {
                 categoryId = cat.id;
               }
             }
-            
-            // Generera en EAN (kan anpassas senare)
-            const ean = `EXCEL-${Date.now()}-${i}`;
             
             try {
               const existing = await ensureProduct(ean);
@@ -1170,7 +1168,7 @@ export default function ToGoPage() {
               <div style={{ padding: "12px", background: "#f9f9f9", borderRadius: 8, marginBottom: 12 }}>
                 <p style={{ margin: "0 0 10px 0", fontSize: "0.9em", color: "#666" }}>
                   Ladda upp en Excel-fil med följande kolumner:<br/>
-                  <strong>A:</strong> Produktnamn | <strong>B:</strong> Varumärke | <strong>C:</strong> Vikt | <strong>D:</strong> Avdelning
+                  <strong>A:</strong> EAN | <strong>B:</strong> Produktnamn | <strong>C:</strong> Varumärke | <strong>D:</strong> Vikt | <strong>E:</strong> Avdelning
                 </p>
                 <input
                   type="file"
