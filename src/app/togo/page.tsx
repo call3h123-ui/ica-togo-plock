@@ -138,6 +138,25 @@ export default function ToGoPage() {
             
             try {
               const existing = await ensureProduct(ean);
+              
+              // Försök hämta bild från API om produkten är ny
+              let imageUrl: string | null = null;
+              try {
+                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.product) {
+                    if (data.product.image_url) {
+                      imageUrl = data.product.image_url;
+                    } else if (data.product.image_front_url) {
+                      imageUrl = data.product.image_front_url;
+                    }
+                  }
+                }
+              } catch (err) {
+                console.log(`Kunde inte hämta bild för ${ean}:`, err);
+              }
+              
               if (!existing) {
                 await createProduct({
                   ean,
@@ -145,17 +164,23 @@ export default function ToGoPage() {
                   brand: brand || null,
                   default_category_id: categoryId,
                   weight: weight || null,
-                  image_url: null
+                  image_url: imageUrl
                 });
                 createdCount++;
-                console.log(`Created: ${productName}`);
+                console.log(`Created: ${productName}${imageUrl ? ' (with image)' : ''}`);
               } else {
-                await updateProduct(ean, {
+                // Vid uppdatering: behåll befintlig bild om den finns, annars använd ny från API
+                const updateObj: any = {
                   name: productName,
                   brand: brand || null,
                   weight: weight || null,
                   default_category_id: categoryId
-                });
+                };
+                // Lägg till bild från API endast om produkten inte redan har en
+                if (imageUrl && !existing.image_url) {
+                  updateObj.image_url = imageUrl;
+                }
+                await updateProduct(ean, updateObj);
                 updatedCount++;
                 console.log(`Updated: ${productName}`);
               }
