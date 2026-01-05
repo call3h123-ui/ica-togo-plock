@@ -516,23 +516,6 @@ export default function ToGoPage() {
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
-      {/* Banner för redan befintlig vara */}
-      {alreadyExistsBanner && (
-        <div style={{
-          background: "#fff3cd",
-          border: "1px solid #ffc107",
-          color: "#856404",
-          padding: "12px 16px",
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: "0.95em",
-          fontWeight: 500,
-          animation: "fadeOut 2s ease-in-out forwards"
-        }}>
-          ℹ️ Denna vara är redan lagd i plocklistan
-        </div>
-      )}
-      
       <style>{`
         @keyframes fadeOut {
           0% { opacity: 1; }
@@ -703,6 +686,23 @@ export default function ToGoPage() {
       {modalOpen && (
         <div style={modalStyle.overlay}>
           <div style={modalStyle.card}>
+            {/* Banner för redan befintlig vara - innanför modal */}
+            {alreadyExistsBanner && (
+              <div style={{
+                background: "#fff3cd",
+                border: "1px solid #ffc107",
+                color: "#856404",
+                padding: "12px 16px",
+                borderRadius: 8,
+                marginBottom: 16,
+                fontSize: "0.95em",
+                fontWeight: 500,
+                animation: "fadeOut 2s ease-in-out forwards"
+              }}>
+                ℹ️ Denna vara är redan lagd i plocklistan
+              </div>
+            )}
+            
             {/* Liten EAN-info och kamera innanför modalen */}
             <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
             <input
@@ -727,6 +727,18 @@ export default function ToGoPage() {
               pattern="[0-9]*"
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
+            <button
+              onClick={() => {
+                setModalOpen(false);
+                scanRef.current?.focus();
+              }}
+              style={{ padding: "6px 10px", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#666", minWidth: "auto", lineHeight: 1 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#E4002B")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+              title="Stäng"
+            >
+              ✕
+            </button>
           </div>
 
             {loadingProduct && (
@@ -1031,7 +1043,7 @@ export default function ToGoPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
-                ✕ Stäng modal
+                ✕ Stäng
               </button>
             </div>
 
