@@ -88,6 +88,9 @@ export default function ToGoPage() {
   // Scanner mode: when enabled, keyboard won't auto-focus after scan
   const [scannerMode, setScannerMode] = useState(true);
 
+  // Keyboard block: temporarily blocks keyboard on EAN fields
+  const [keyboardBlocked, setKeyboardBlocked] = useState(false);
+
   // Banner för redan befintlig vara
   const [alreadyExistsBanner, setAlreadyExistsBanner] = useState(false);
 
@@ -579,7 +582,7 @@ export default function ToGoPage() {
             }
           }}
           onFocus={(e) => {
-            if (scannerMode) {
+            if (scannerMode || keyboardBlocked) {
               setTimeout(() => {
                 (e.target as HTMLInputElement).blur();
               }, 0);
@@ -611,6 +614,22 @@ export default function ToGoPage() {
           onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
           ➕ Manuell artikel
+        </button>
+
+        <button 
+          onClick={() => {
+            setKeyboardBlocked(!keyboardBlocked);
+            if (!keyboardBlocked) {
+              // Auto-hide keyboard block after 5 minutes
+              setTimeout(() => setKeyboardBlocked(false), 5 * 60 * 1000);
+            }
+          }}
+          style={{ padding: "clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px)", fontSize: "clamp(0.85em, 2vw, 0.9em)", whiteSpace: "nowrap", flex: "1 1 auto", minWidth: "100px", background: keyboardBlocked ? "#4CAF50" : "#999", color: "white", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          title={keyboardBlocked ? "Tangentbord blockerat - klicka för att aktivera" : "Blockera tangentbord för scanning"}
+        >
+          {keyboardBlocked ? "🔐 Tangentbord av" : "⌨ Tangentbord på"}
         </button>
       </div>
 
@@ -692,7 +711,7 @@ export default function ToGoPage() {
                 }
               }}
               onFocus={(e) => {
-                if (scannerMode) {
+                if (scannerMode || keyboardBlocked) {
                   setTimeout(() => {
                     (e.target as HTMLInputElement).blur();
                   }, 0);
