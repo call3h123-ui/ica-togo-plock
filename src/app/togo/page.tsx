@@ -375,7 +375,10 @@ export default function ToGoPage() {
     try {
       // If there's an EAN, handle as usual (with product lookup/creation)
       if (newEan) {
-        // Check if product already exists
+        // Check if product already exists in order
+        const existingOrderItem = rows.find(r => r.ean === newEan && r.qty > 0);
+        
+        // Check if product already exists in database
         const existing = await ensureProduct(newEan);
         if (!existing) {
           // New product - create it
@@ -384,8 +387,14 @@ export default function ToGoPage() {
           // Product exists - update it with new details (including category)
           await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null, default_category_id: catId });
         }
-        // For both new and existing, increment quantity
-        await rpcIncrement(newEan, catId, newQty);
+        
+        // If product already in order, update quantity instead of incrementing
+        if (existingOrderItem) {
+          await rpcSetQty(newEan, catId, newQty);
+        } else {
+          // New to order - increment quantity
+          await rpcIncrement(newEan, catId, newQty);
+        }
       } else {
         // No EAN - create a manual order item without product database entry
         // This allows adding items without scanning
