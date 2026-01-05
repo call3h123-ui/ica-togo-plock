@@ -546,7 +546,7 @@ export default function ToGoPage() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: "200px" }}>
-          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🛒 ToGo – Skanna & beställ</h1>
+          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🛒 Beställning</h1>
           <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -1287,6 +1287,20 @@ export default function ToGoPage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Logout Section */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #ddd" }}>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("storeId");
+                  localStorage.removeItem("storeName");
+                  window.location.href = "/login";
+                }}
+                style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}
+              >
+                🚪 Logga ut
+              </button>
             </div>
 
             {/* Stäng modal */}

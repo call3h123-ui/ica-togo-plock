@@ -101,9 +101,12 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f5", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
         
-        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 30, textAlign: "center", color: "#E4002B" }}>
-          ICA Plock
-        </h1>
+        
+        <img 
+          src="/ica-logo.svg" 
+          alt="ICA Logo" 
+          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px" }}
+        />
 
         {/* Mode toggle */}
         <div style={{ display: "flex", gap: 10, marginBottom: 30 }}>

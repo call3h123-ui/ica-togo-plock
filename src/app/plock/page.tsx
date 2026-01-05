@@ -189,7 +189,7 @@ export default function PlockPage() {
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: "200px" }}>
-          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📋 Liatorp – Plocklista</h1>
+          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📋 Plocklista</h1>
           <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Markera produkter när de är plockade</p>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)" }}>
@@ -321,6 +321,20 @@ export default function PlockPage() {
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Logout Section */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #ddd", marginBottom: 12 }}>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("storeId");
+                  localStorage.removeItem("storeName");
+                  window.location.href = "/login";
+                }}
+                style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+              >
+                🚪 Logga ut
+              </button>
             </div>
 
             <button

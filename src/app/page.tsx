@@ -7,8 +7,12 @@ export default function Home() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "20px" }}>
       <div style={{ maxWidth: 500, width: "100%", maxHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ textAlign: "center", marginBottom: "clamp(30px, 8vw, 40px)" }}>
-          <h1 style={{ fontSize: "clamp(2.5em, 10vw, 3em)", marginBottom: "10px" }}>ICA</h1>
-          <p style={{ fontSize: "clamp(1em, 3vw, 1.2em)", color: "#666", fontWeight: 500 }}>ToGo & Plock</p>
+          <img 
+            src="/ica-logo.svg" 
+            alt="ICA Logo" 
+            style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "20px" }}
+          />
+          <p style={{ fontSize: "clamp(1em, 3vw, 1.2em)", color: "#666", fontWeight: 500 }}>Plocklista mellan butiker</p>
         </div>
         <div style={{ display: "grid", gap: "clamp(12px, 3vw, 16px)" }}>
           <Link 
@@ -33,7 +37,7 @@ export default function Home() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)", e.currentTarget.style.boxShadow = "0 8px 24px rgba(228, 0, 43, 0.35)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(228, 0, 43, 0.25)")}
           >
-            ICA ToGo Agunnaryd - Beställning
+            Beställning
           </Link>
           <Link 
             href="/plock" 
@@ -57,7 +61,7 @@ export default function Home() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)", e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.25)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)")}
           >
-            ICA Nära Liatorp - Plocklista
+            Plocklista
           </Link>
         </div>
       </div>
