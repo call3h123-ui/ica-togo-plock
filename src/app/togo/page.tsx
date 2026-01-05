@@ -578,14 +578,11 @@ export default function ToGoPage() {
               handleScanSubmit((e.target as HTMLInputElement).value);
             }
           }}
-          onMouseDown={(e) => {
+          onFocus={(e) => {
             if (scannerMode) {
-              e.preventDefault();
-            }
-          }}
-          onTouchStart={(e) => {
-            if (scannerMode) {
-              e.preventDefault();
+              setTimeout(() => {
+                (e.target as HTMLInputElement).blur();
+              }, 0);
             }
           }}
           placeholder="Skanna EAN här"
@@ -694,14 +691,11 @@ export default function ToGoPage() {
                   handleScanSubmit((e.target as HTMLInputElement).value);
                 }
               }}
-              onMouseDown={(e) => {
+              onFocus={(e) => {
                 if (scannerMode) {
-                  e.preventDefault();
-                }
-              }}
-              onTouchStart={(e) => {
-                if (scannerMode) {
-                  e.preventDefault();
+                  setTimeout(() => {
+                    (e.target as HTMLInputElement).blur();
+                  }, 0);
                 }
               }}
               placeholder="Scanna ny vara"
