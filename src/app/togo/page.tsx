@@ -108,6 +108,7 @@ export default function ToGoPage() {
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           
           let createdCount = 0;
+          let updatedCount = 0;
           
           // Gå igenom varje rad (börja från rad 2 för att hoppa över headers)
           for (let i = 1; i < rows.length; i++) {
@@ -118,8 +119,13 @@ export default function ToGoPage() {
             const weight = String(row[3] || "").trim();
             const categoryName = String(row[4] || "").trim();
             
+            console.log(`Row ${i}:`, { ean, productName, brand, weight, categoryName });
+            
             // Hoppa över tomma rader
-            if (!ean || !productName) continue;
+            if (!ean || !productName) {
+              console.log(`Row ${i} skipped - missing EAN or productName`);
+              continue;
+            }
             
             // Hitta kategori-ID baserat på namn
             let categoryId = defaultCatId;
@@ -142,15 +148,25 @@ export default function ToGoPage() {
                   image_url: null
                 });
                 createdCount++;
+                console.log(`Created: ${productName}`);
+              } else {
+                await updateProduct(ean, {
+                  name: productName,
+                  brand: brand || null,
+                  weight: weight || null,
+                  default_category_id: categoryId
+                });
+                updatedCount++;
+                console.log(`Updated: ${productName}`);
               }
             } catch (err) {
-              console.error(`Kunde inte skapa produkt ${productName}:`, err);
+              console.error(`Kunde inte importera produkt ${productName}:`, err);
             }
           }
           
-          alert(`Importerat ${createdCount} produkter från Excel-filen`);
-          await refresh();
-          setExcelLoading(false);
+          const message = `Importerat ${createdCount} nya och uppdaterat ${updatedCount} befintliga produkter`;
+          alert(message);
+          console.log(message);
         } catch (err) {
           console.error("Excel parsing error:", err);
           alert("Fel vid läsning av Excel-filen");
