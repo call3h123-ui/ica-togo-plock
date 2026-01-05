@@ -578,12 +578,22 @@ export default function ToGoPage() {
               handleScanSubmit((e.target as HTMLInputElement).value);
             }
           }}
+          onMouseDown={(e) => {
+            if (scannerMode) {
+              e.preventDefault();
+            }
+          }}
+          onTouchStart={(e) => {
+            if (scannerMode) {
+              e.preventDefault();
+            }
+          }}
           placeholder="Skanna EAN här"
           type="tel"
           inputMode={scannerMode ? "none" : "numeric"}
           autoComplete="off"
           pattern="[0-9]*"
-          style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B", pointerEvents: scannerMode ? "none" : "auto" }}
+          style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
         />
 
         <button 
@@ -684,12 +694,22 @@ export default function ToGoPage() {
                   handleScanSubmit((e.target as HTMLInputElement).value);
                 }
               }}
+              onMouseDown={(e) => {
+                if (scannerMode) {
+                  e.preventDefault();
+                }
+              }}
+              onTouchStart={(e) => {
+                if (scannerMode) {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Scanna ny vara"
               type="tel"
               inputMode={scannerMode ? "none" : "numeric"}
               autoComplete="off"
               pattern="[0-9]*"
-              style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B", pointerEvents: scannerMode ? "none" : "auto" }}
+              style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
           </div>
 
