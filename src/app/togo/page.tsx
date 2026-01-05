@@ -364,7 +364,7 @@ export default function ToGoPage() {
         // Vara redan i orderlistan - visa banner och fyll in med befintlig data
         console.log("handleScanSubmit -> product already in order, showing banner");
         setAlreadyExistsBanner(true);
-        setTimeout(() => setAlreadyExistsBanner(false), 2000);
+        setTimeout(() => setAlreadyExistsBanner(false), 4000);
         
         setModalOpen(true);
         setExpandedEditFields(false);
