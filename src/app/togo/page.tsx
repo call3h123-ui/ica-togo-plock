@@ -113,8 +113,8 @@ export default function ToGoPage() {
           let createdCount = 0;
           let updatedCount = 0;
           
-          // Gå igenom varje rad (börja från rad 2 för att hoppa över headers)
-          for (let i = 1; i < rows.length; i++) {
+          // Gå igenom varje rad (börja från rad 0)
+          for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             const ean = String(row[0] || "").trim();
             const productName = String(row[1] || "").trim();
