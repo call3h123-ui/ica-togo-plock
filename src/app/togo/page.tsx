@@ -87,6 +87,9 @@ export default function ToGoPage() {
   // Scanner mode: when enabled, keyboard won't auto-focus after scan
   const [scannerMode, setScannerMode] = useState(true);
 
+  // Banner för redan befintlig vara
+  const [alreadyExistsBanner, setAlreadyExistsBanner] = useState(false);
+
   const defaultCatId = useMemo(() => categories[0]?.id ?? "", [categories]);
 
   async function refresh() {
@@ -239,17 +242,37 @@ export default function ToGoPage() {
         return;
       }
 
-      // Product exists - open modal to let user add quantity
-      console.log("handleScanSubmit -> product exists, opening modal with existing product");
-      setModalOpen(true);
-      setExpandedEditFields(false);
-      setNewEan(ean);
-      setNewName(product.name);
-      setNewBrand(product.brand || "");
-      setNewImage(product.image_url || "");
-      setNewWeight((product as any).weight || null);
-      setNewCat(product.default_category_id || defaultCatId);
-      setNewQty(1); // Reset quantity for new addition
+      // Product exists - check if already in order
+      const existingOrder = rows.find(r => r.ean === ean && r.qty > 0);
+      
+      if (existingOrder) {
+        // Vara redan i orderlistan - visa banner och fyll in med befintlig data
+        console.log("handleScanSubmit -> product already in order, showing banner");
+        setAlreadyExistsBanner(true);
+        setTimeout(() => setAlreadyExistsBanner(false), 2000);
+        
+        setModalOpen(true);
+        setExpandedEditFields(false);
+        setNewEan(ean);
+        setNewName(existingOrder.product?.name || "");
+        setNewBrand(existingOrder.product?.brand || "");
+        setNewImage(existingOrder.product?.image_url || "");
+        setNewWeight((existingOrder.product as any)?.weight || null);
+        setNewCat(existingOrder.category_id);
+        setNewQty(existingOrder.qty); // Använd befintlig mängd
+      } else {
+        // Ny vara - normalt flöde
+        console.log("handleScanSubmit -> product exists, opening modal with existing product");
+        setModalOpen(true);
+        setExpandedEditFields(false);
+        setNewEan(ean);
+        setNewName(product.name);
+        setNewBrand(product.brand || "");
+        setNewImage(product.image_url || "");
+        setNewWeight((product as any).weight || null);
+        setNewCat(product.default_category_id || defaultCatId);
+        setNewQty(1); // Reset quantity for new addition
+      }
 
       scanRef.current?.focus();
     } catch (err) {
@@ -373,6 +396,31 @@ export default function ToGoPage() {
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
+      {/* Banner för redan befintlig vara */}
+      {alreadyExistsBanner && (
+        <div style={{
+          background: "#fff3cd",
+          border: "1px solid #ffc107",
+          color: "#856404",
+          padding: "12px 16px",
+          borderRadius: 8,
+          marginBottom: 16,
+          fontSize: "0.95em",
+          fontWeight: 500,
+          animation: "fadeOut 2s ease-in-out forwards"
+        }}>
+          ℹ️ Denna vara är redan lagd i plocklistan
+        </div>
+      )}
+      
+      <style>{`
+        @keyframes fadeOut {
+          0% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: "200px" }}>
           <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🛒 ToGo – Skanna & beställ</h1>
