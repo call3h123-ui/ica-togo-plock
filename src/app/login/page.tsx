@@ -5,29 +5,14 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [storeName, setStoreName] = useState("");
   const [storePassword, setStorePassword] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-  const [selectedStore, setSelectedStore] = useState("");
-  const [stores, setStores] = useState<Array<{id: string; name: string}>>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"store" | "admin">("store");
   const [showAdmin, setShowAdmin] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
-
-  // Load available stores on mount
-  useEffect(() => {
-    const loadStores = async () => {
-      try {
-        const response = await fetch("/api/stores");
-        const data = await response.json();
-        setStores(data);
-      } catch (err) {
-        console.error("Failed to load stores:", err);
-      }
-    };
-    loadStores();
-  }, []);
 
   const handleStoreLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +24,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          storeId: selectedStore,
+          storeName: storeName,
           password: storePassword,
         }),
       });
@@ -52,8 +37,8 @@ export default function LoginPage() {
       }
 
       // Store auth info in localStorage
-      localStorage.setItem("storeId", selectedStore);
-      localStorage.setItem("storeName", stores.find(s => s.id === selectedStore)?.name || "");
+      localStorage.setItem("storeId", data.storeId);
+      localStorage.setItem("storeName", data.storeName);
 
       // Redirect to home page to select between beställning/plocklista
       router.push("/");
@@ -174,11 +159,13 @@ export default function LoginPage() {
           <form onSubmit={handleStoreLogin}>
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
-                Välj butik
+                Butiknamn
               </label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="Ange butiknamn"
                 required
                 style={{
                   width: "100%",
@@ -186,16 +173,9 @@ export default function LoginPage() {
                   border: "1px solid #ddd",
                   borderRadius: 6,
                   fontSize: 14,
-                  fontFamily: "inherit",
+                  boxSizing: "border-box",
                 }}
-              >
-                <option value="">-- Välj butik --</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div style={{ marginBottom: 24 }}>
@@ -221,17 +201,17 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !selectedStore}
+              disabled={loading || !storeName}
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: loading || !selectedStore ? "#ccc" : "#e3000b",
+                background: loading || !storeName ? "#ccc" : "#e3000b",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 600,
                 fontSize: 16,
-                cursor: loading || !selectedStore ? "not-allowed" : "pointer",
+                cursor: loading || !storeName ? "not-allowed" : "pointer",
               }}
             >
               {loading ? "Loggar in..." : "Logga in"}
