@@ -194,7 +194,10 @@ export default function PlockPage() {
     }
     
     await rpcPicked(ean, isPicked, me, storeId);
-    await refresh();
+    // Delay refresh slightly to let the visual effect show
+    setTimeout(() => {
+      refresh();
+    }, 300);
   }
 
   async function clearPicked() {
