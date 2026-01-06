@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { getCategories, getOrderRows, rpcClearPicked, rpcPicked } from "@/lib/data";
@@ -105,6 +106,8 @@ function printPickList(rows: OrderRow[], categories: Category[]) {
 }
 
 export default function PlockPage() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [me, setMe] = useState<string>("");
@@ -127,9 +130,12 @@ export default function PlockPage() {
       const savedStoreId = localStorage.getItem("storeId");
       if (savedStoreId) {
         setStoreId(savedStoreId);
+        setIsAuthorized(true);
+      } else {
+        router.push("/login");
       }
     }
-  }, []);
+  }, [router]);
 
   // Separate effect for refresh that depends on storeId
   useEffect(() => {
@@ -184,6 +190,10 @@ export default function PlockPage() {
   }
 
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Okänd kategori";
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>

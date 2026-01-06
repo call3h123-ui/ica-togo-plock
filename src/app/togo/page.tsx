@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
@@ -53,6 +54,8 @@ function compressImage(dataUrl: string, callback: (compressedDataUrl: string) =>
 }
 
 export default function ToGoPage() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [scanValue, setScanValue] = useState("");
@@ -239,9 +242,12 @@ export default function ToGoPage() {
       if (savedStoreId) {
         setStoreId(savedStoreId);
         setStoreName(savedStoreName || "");
+        setIsAuthorized(true);
+      } else {
+        router.push("/login");
       }
     }
-  }, []);
+  }, [router]);
 
   // Separate effect for refresh that depends on storeId
   useEffect(() => {
@@ -533,6 +539,10 @@ export default function ToGoPage() {
     });
     return groups;
   }, [unpicked]);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
