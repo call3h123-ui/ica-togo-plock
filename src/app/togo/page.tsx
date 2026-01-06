@@ -583,7 +583,7 @@ export default function ToGoPage() {
             ⚙️ Inställningar
           </button>
           <Link 
-            href="/" 
+            href="/plock" 
             style={{ 
               padding: "10px 16px", 
               background: "#f0f0f0", 
@@ -601,7 +601,7 @@ export default function ToGoPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
           >
-            ← Tillbaka
+            ⇄ Plocklista
           </Link>
         </div>
       </div>
