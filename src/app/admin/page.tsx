@@ -16,6 +16,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [editingPassword, setEditingPassword] = useState("");
 
   useEffect(() => {
     // Check if admin is authenticated
@@ -82,6 +85,56 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     router.push("/login");
+  };
+
+  const handleEditStore = (store: Store) => {
+    setEditingStoreId(store.id);
+    setEditingName(store.name);
+    setEditingPassword("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingName.trim()) {
+      setError("Butiknamn kan inte vara tomt");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/stores", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: editingStoreId,
+          name: editingName.trim(),
+          password: editingPassword || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Kunde inte uppdatera butik");
+        return;
+      }
+
+      setSuccess(`Butik uppdaterad`);
+      setEditingStoreId(null);
+      setEditingName("");
+      setEditingPassword("");
+      loadStores();
+    } catch (err) {
+      setError("Ett fel uppstod");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStoreId(null);
+    setEditingName("");
+    setEditingPassword("");
   };
 
   return (
@@ -223,27 +276,108 @@ export default function AdminPage() {
                     alignItems: "center",
                   }}
                 >
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                      {store.name}
-                    </p>
-                    <p style={{ fontSize: 12, color: "#666" }}>
-                      ID: {store.id.substring(0, 8)}...
-                    </p>
-                  </div>
-                  <button
-                    style={{
-                      padding: "8px 12px",
-                      background: "#f0f0f0",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Redigera
-                  </button>
+                  {editingStoreId === store.id ? (
+                    <>
+                      <div style={{ flex: 1, marginRight: 16 }}>
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                            Butiknamn
+                          </label>
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              borderRadius: 4,
+                              fontSize: 14,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                            Nytt lösenord (lämna tomt för att behålla)
+                          </label>
+                          <input
+                            type="password"
+                            value={editingPassword}
+                            onChange={(e) => setEditingPassword(e.target.value)}
+                            placeholder="Lämna tomt för att behålla"
+                            style={{
+                              width: "100%",
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              borderRadius: 4,
+                              fontSize: 14,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={loading}
+                          style={{
+                            padding: "8px 12px",
+                            background: loading ? "#ccc" : "#4CAF50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 4,
+                            cursor: loading ? "not-allowed" : "pointer",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Spara
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#999",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 4,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Avbryt
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+                          {store.name}
+                        </p>
+                        <p style={{ fontSize: 12, color: "#666" }}>
+                          ID: {store.id.substring(0, 8)}...
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleEditStore(store)}
+                        style={{
+                          padding: "8px 12px",
+                          background: "#2196F3",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 4,
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Redigera
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

@@ -45,3 +45,52 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { storeId, name, password } = body;
+
+    if (!storeId || !name) {
+      return NextResponse.json(
+        { message: "StoreID och namn krävs" },
+        { status: 400 }
+      );
+    }
+
+    const updateData: any = { name: name.trim() };
+
+    if (password && password.trim()) {
+      updateData.password_hash = password;
+    }
+
+    const { data, error } = await supabase
+      .from("stores")
+      .update(updateData)
+      .eq("id", storeId)
+      .select();
+
+    if (error) {
+      console.error("Update store error:", error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return NextResponse.json(
+        { message: "Butik inte hittad" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      store: data[0],
+    });
+  } catch (err) {
+    console.error("Update store error:", err);
+    return NextResponse.json(
+      { message: "Kunde inte uppdatera butik" },
+      { status: 500 }
+    );
+  }
+}
