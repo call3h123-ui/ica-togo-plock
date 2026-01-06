@@ -114,6 +114,7 @@ export default function PlockPage() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [storeId, setStoreId] = useState<string>("");
+  const [recentlyPicked, setRecentlyPicked] = useState<Set<string>>(new Set());
 
   async function refresh() {
     const [cats, ord] = await Promise.all([
@@ -179,6 +180,19 @@ export default function PlockPage() {
   const pickedGroups = useMemo(() => groupByCat(picked), [picked]);
 
   async function toggle(ean: string, isPicked: boolean) {
+    // Show visual feedback when picking
+    if (isPicked) {
+      setRecentlyPicked(prev => new Set(prev).add(ean));
+      // Remove from recently picked after 1.5 seconds
+      setTimeout(() => {
+        setRecentlyPicked(prev => {
+          const next = new Set(prev);
+          next.delete(ean);
+          return next;
+        });
+      }, 1500);
+    }
+    
     await rpcPicked(ean, isPicked, me, storeId);
     await refresh();
   }
@@ -269,7 +283,7 @@ export default function PlockPage() {
                 <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", color: "#E4002B", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)} ({items.length})</h3>
                 <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
                   {items.map((r) => (
-                    <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={false} />
+                    <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={recentlyPicked.has(r.ean)} />
                   ))}
                 </div>
               </div>
