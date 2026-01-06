@@ -194,12 +194,20 @@ export async function createCategory(name: string, storeId?: string): Promise<Ca
   return data as Category;
 }
 
-export async function updateCategory(id: string, name: string): Promise<void> {
-  const { error } = await supabase.from("categories").update({ name }).eq("id", id);
+export async function updateCategory(id: string, name: string, storeId?: string): Promise<void> {
+  const { error } = await supabase
+    .from("categories")
+    .update({ name })
+    .eq("id", id)
+    .eq("store_id", storeId || null);
   if (error) throw error;
 }
 
-export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase.from("categories").delete().eq("id", id);
+export async function deleteCategory(id: string, storeId?: string): Promise<void> {
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("id", id)
+    .eq("store_id", storeId || null);
   if (error) throw error;
 }

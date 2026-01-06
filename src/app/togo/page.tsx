@@ -1169,7 +1169,7 @@ export default function ToGoPage() {
                         <button
                           onClick={async () => {
                             try {
-                              await updateCategory(cat.id, editingCatName);
+                              await updateCategory(cat.id, editingCatName, storeId);
                               await refresh();
                               setEditingCatId(null);
                             } catch (err) {
@@ -1203,7 +1203,7 @@ export default function ToGoPage() {
                           onClick={async () => {
                             if (!confirm(`Ta bort avdelning "${cat.name}"?`)) return;
                             try {
-                              await deleteCategory(cat.id);
+                              await deleteCategory(cat.id, storeId);
                               await refresh();
                             } catch (err) {
                               alert("Kunde inte ta bort avdelning");
