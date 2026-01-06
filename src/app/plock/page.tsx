@@ -397,7 +397,20 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
           cursor: "pointer"
         }}
       >
-        <input type="checkbox" checked={row.is_picked} onChange={(e) => onToggle(e.target.checked)} style={{ transform: "scale(1.2)", cursor: "pointer", accentColor: "#E4002B", minWidth: "20px", marginTop: 0, flexShrink: 0 }} />
+        <input 
+          type="checkbox" 
+          checked={row.is_picked || toned} 
+          onChange={(e) => onToggle(e.target.checked)} 
+          style={{ 
+            transform: "scale(1.2)", 
+            cursor: "pointer", 
+            accentColor: "#E4002B", 
+            minWidth: "20px", 
+            marginTop: 0, 
+            flexShrink: 0,
+            ...(toned && { filter: "brightness(0.7)" })
+          }} 
+        />
         
         {(row.product as any)?.image_url && (
           <div style={{ flexShrink: 0 }}>
