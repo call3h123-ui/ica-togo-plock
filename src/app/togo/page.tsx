@@ -86,6 +86,15 @@ export default function ToGoPage() {
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
   const [newCatName, setNewCatName] = useState("");
+  
+  // Scanner mode toggle
+  const [scannerMode, setScannerMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("scannerMode");
+      return saved === null ? true : saved === "true";
+    }
+    return true;
+  });
 
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
@@ -248,6 +257,13 @@ export default function ToGoPage() {
       }
     }
   }, [router]);
+
+  // Save scanner mode to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("scannerMode", String(scannerMode));
+    }
+  }, [scannerMode]);
 
   // Separate effect for refresh that depends on storeId
   useEffect(() => {
@@ -561,6 +577,29 @@ export default function ToGoPage() {
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button 
+            onClick={() => setScannerMode(!scannerMode)}
+            style={{ 
+              padding: "10px 16px", 
+              background: scannerMode ? "#E4002B" : "#f0f0f0", 
+              color: scannerMode ? "white" : "#333", 
+              border: "none",
+              borderRadius: 8, 
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "clamp(0.85em, 2vw, 0.95em)"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = scannerMode ? "#cc0024" : "#e0e0e0")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = scannerMode ? "#E4002B" : "#f0f0f0")}
+            title={scannerMode ? "Scanner mode på" : "Scanner mode av"}
+          >
+            📱 Scanner
+          </button>
+          <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
               padding: "10px 16px", 
@@ -625,8 +664,8 @@ export default function ToGoPage() {
           }}
           placeholder="Skanna EAN här"
           type="text"
-          inputMode="none"
-          readOnly
+          inputMode={scannerMode ? "none" : "numeric"}
+          readOnly={scannerMode}
           autoComplete="off"
           autoCorrect="off"
           spellCheck="false"
@@ -755,8 +794,8 @@ export default function ToGoPage() {
               }}
               placeholder="Scanna ny vara"
               type="text"
-              inputMode="none"
-              readOnly
+              inputMode={scannerMode ? "none" : "numeric"}
+              readOnly={scannerMode}
               autoComplete="off"
               autoCorrect="off"
               spellCheck="false"
