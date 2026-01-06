@@ -1,12 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Use service role for admin operations
-const adminSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,14 +64,14 @@ export async function PUT(request: NextRequest) {
       updateData.password_hash = password;
     }
 
-    const { data, error } = await adminSupabase
+    const { data, error } = await supabase
       .from("stores")
       .update(updateData)
       .eq("id", storeId)
       .select();
 
     if (error) {
-      console.error("Update store error:", error);
+      console.error("Update store error:", error, updateData);
       throw error;
     }
 
