@@ -213,22 +213,22 @@ export default function PlockPage() {
   }
 
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
+    <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh", background: "#e3000b" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid rgba(255, 255, 255, 0.2)", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: "200px" }}>
-          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📋 Plocklista</h1>
-          <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Markera produkter när de är plockade</p>
+          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "white" }}>📋 Plocklista</h1>
+          <p style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Markera produkter när de är plockade</p>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)" }}>
           <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
               padding: "10px 16px", 
-              background: "#f0f0f0", 
-              color: "#333", 
+              background: "white", 
+              color: "#e3000b", 
               border: "none",
               borderRadius: 8, 
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: "pointer",
               transition: "all 0.2s",
               whiteSpace: "nowrap",
@@ -237,8 +237,8 @@ export default function PlockPage() {
               alignItems: "center",
               fontSize: "clamp(0.85em, 2vw, 0.95em)"
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
           >
             ⚙️ Filter
           </button>
@@ -246,11 +246,11 @@ export default function PlockPage() {
             href="/" 
             style={{ 
               padding: "10px 16px", 
-              background: "#f0f0f0", 
-              color: "#333", 
+              background: "white", 
+              color: "#e3000b", 
               borderRadius: 8, 
               textDecoration: "none",
-              fontWeight: 500,
+              fontWeight: 600,
               transition: "all 0.2s",
               whiteSpace: "nowrap",
               minHeight: "44px",
@@ -258,8 +258,8 @@ export default function PlockPage() {
               alignItems: "center",
               fontSize: "clamp(0.85em, 2vw, 0.95em)"
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
           >
             ← Tillbaka
           </Link>
@@ -267,23 +267,23 @@ export default function PlockPage() {
       </div>
 
       <div style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
-        <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, color: "white" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            📋 Att plocka <span style={{ background: "#E4002B", color: "white", borderRadius: 20, padding: "4px 12px", fontSize: "clamp(0.7em, 1.5vw, 0.8em)", fontWeight: 700 }}>{todo.length}</span>
+            📋 Att plocka <span style={{ background: "white", color: "#e3000b", borderRadius: 20, padding: "4px 12px", fontSize: "clamp(0.7em, 1.5vw, 0.8em)", fontWeight: 700 }}>{todo.length}</span>
           </span>
           <button onClick={() => printPickList(todo, categories)} title="Skriv ut plocklista" style={{ padding: "clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)", fontSize: "1.2em", background: "none", border: "none", cursor: "pointer" }}>
             🖨️
           </button>
         </h2>
         {todo.length === 0 ? (
-          <div style={{ background: "#f9f9f9", padding: "clamp(16px, 4vw, 24px)", borderRadius: 12, textAlign: "center", color: "#999" }}>
+          <div style={{ background: "white", padding: "clamp(16px, 4vw, 24px)", borderRadius: 12, textAlign: "center", color: "#999" }}>
             <p style={{ fontSize: "clamp(0.9em, 2vw, 1.1em)" }}>✨ Inget att plocka just nu</p>
           </div>
         ) : (
           <>
             {[...todoGroups.entries()].map(([catId, items]) => (
               <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)" }}>
-                <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", color: "#E4002B", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)} ({items.length})</h3>
+                <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", color: "white", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)} ({items.length})</h3>
                 <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
                   {items.map((r) => (
                     <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={recentlyPicked.has(r.ean)} />
@@ -297,15 +297,15 @@ export default function PlockPage() {
 
       {picked.length > 0 && (
         <div style={{ marginTop: "clamp(16px, 4vw, 24px)" }}>
-          <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", opacity: 0.7, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ marginBottom: "clamp(12px, 3vw, 16px)", color: "white", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span>✓ Plockat</span>
-            <button onClick={clearPicked} style={{ padding: "clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", background: "#ccc", color: "#333", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={clearPicked} style={{ padding: "clamp(8px, 1.5vw, 10px) clamp(10px, 2vw, 14px)", fontSize: "clamp(0.85em, 2vw, 0.95em)", background: "rgba(255, 255, 255, 0.9)", color: "#e3000b", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
               🗑️ Rensa
             </button>
           </h2>
           {[...pickedGroups.entries()].map(([catId, items]) => (
-            <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)", opacity: 0.65 }}>
-              <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)}</h3>
+            <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)" }}>
+              <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", fontSize: "clamp(0.95em, 2vw, 1.1em)", color: "rgba(255, 255, 255, 0.8)" }}>{catName(catId)}</h3>
               <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
                 {items.map((r) => (
                   <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={true} />
@@ -319,7 +319,7 @@ export default function PlockPage() {
       {/* Settings Modal */}
       {settingsOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-          <div style={{ width: "100%", maxWidth: 450, background: "#fff", borderRadius: 14, padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
+          <div style={{ width: "100%", maxWidth: 450, background: "white", borderRadius: 14, padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.15)" }}>
             <h2 style={{ marginTop: 0, marginBottom: 16 }}>⚙️ Filter</h2>
             
             <div style={{ marginBottom: 20 }}>
@@ -358,7 +358,7 @@ export default function PlockPage() {
                   localStorage.removeItem("storeName");
                   window.location.href = "/login";
                 }}
-                style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#E4002B", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+                style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#e3000b", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
               >
                 🚪 Logga ut
               </button>
@@ -366,7 +366,7 @@ export default function PlockPage() {
 
             <button
               onClick={() => setSettingsOpen(false)}
-              style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#666", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
+              style={{ width: "100%", padding: 12, fontSize: "1em", fontWeight: 600, background: "#999", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
             >
               Stäng inställningar
             </button>
