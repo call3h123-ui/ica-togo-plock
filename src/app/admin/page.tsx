@@ -319,6 +319,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
+                          type="button"
                           onClick={handleSaveEdit}
                           disabled={loading}
                           style={{
@@ -335,6 +336,7 @@ export default function AdminPage() {
                           Spara
                         </button>
                         <button
+                          type="button"
                           onClick={handleCancelEdit}
                           style={{
                             padding: "8px 12px",
