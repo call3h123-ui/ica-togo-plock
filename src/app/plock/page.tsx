@@ -243,7 +243,7 @@ export default function PlockPage() {
             ⚙️ Filter
           </button>
           <Link 
-            href="/" 
+            href="/togo" 
             style={{ 
               padding: "10px 16px", 
               background: "white", 
@@ -261,7 +261,7 @@ export default function PlockPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
           >
-            ← Tillbaka
+            ⇄ Beställning
           </Link>
         </div>
       </div>
