@@ -624,9 +624,12 @@ export default function ToGoPage() {
             }
           }}
           placeholder="Skanna EAN här"
-          type="tel"
-          inputMode="numeric"
+          type="text"
+          inputMode="none"
+          readOnly
           autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
           pattern="[0-9]*"
           style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
         />
@@ -751,9 +754,12 @@ export default function ToGoPage() {
                 }
               }}
               placeholder="Scanna ny vara"
-              type="tel"
-              inputMode="numeric"
+              type="text"
+              inputMode="none"
+              readOnly
               autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               pattern="[0-9]*"
               style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
             />
