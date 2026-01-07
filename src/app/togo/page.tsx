@@ -280,39 +280,66 @@ export default function ToGoPage() {
 
   // Start/stop camera barcode scanning
   useEffect(() => {
-    let codeReader: BrowserMultiFormatReader | null = null;
     let isActive = true;
+    let mediaStream: MediaStream | null = null;
 
     async function startScanning() {
       if (!cameraActive || !cameraVideoRef.current) return;
 
       try {
-        codeReader = new BrowserMultiFormatReader();
-        
-        // Hämta tillgängliga videoinputs
-        const videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
-        console.log("Tillgängliga kameror:", videoInputDevices);
-        
-        // Välj bakre kamera om möjligt
-        let selectedDeviceId: string | undefined = undefined;
-        const backCamera = videoInputDevices.find(device => 
-          device.label.toLowerCase().includes('back') || 
-          device.label.toLowerCase().includes('rear') ||
-          device.label.toLowerCase().includes('environment')
-        );
-        if (backCamera) {
-          selectedDeviceId = backCamera.deviceId;
-        } else if (videoInputDevices.length > 0) {
-          // På de flesta mobiler är den sista kameran bakre kameran
-          selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
+        // Först, begär kamera med optimala inställningar för streckkodsläsning
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: 'environment' }, // Bakre kamera
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          }
+        };
+
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          
+          // Försök aktivera kontinuerlig autofokus om det stöds
+          const videoTrack = mediaStream.getVideoTracks()[0];
+          if (videoTrack) {
+            const capabilities = videoTrack.getCapabilities?.() as any;
+            console.log("Kamerakapaciteter:", capabilities);
+            
+            if (capabilities?.focusMode?.includes('continuous')) {
+              try {
+                await videoTrack.applyConstraints({
+                  // @ts-ignore
+                  advanced: [{ focusMode: 'continuous' }]
+                });
+                console.log("Kontinuerlig autofokus aktiverad!");
+              } catch (e) {
+                console.log("Kunde inte sätta fokusläge:", e);
+              }
+            }
+          }
+          
+          // Sätt strömmen till video-elementet
+          cameraVideoRef.current.srcObject = mediaStream;
+          await cameraVideoRef.current.play();
+          
+        } catch (e) {
+          console.log("Kunde inte få optimal kamera, försöker enkel:", e);
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          if (cameraVideoRef.current) {
+            cameraVideoRef.current.srcObject = mediaStream;
+            await cameraVideoRef.current.play();
+          }
         }
 
-        console.log("Använder kamera:", selectedDeviceId);
-
-        // Starta kontinuerlig skanning
-        await codeReader.decodeFromVideoDevice(
-          selectedDeviceId,
-          cameraVideoRef.current,
+        // Skapa codeReader och börja skanna
+        const codeReader = new BrowserMultiFormatReader();
+        
+        // Använd decodeFromVideoDevice med callback för kontinuerlig skanning
+        codeReader.decodeFromVideoDevice(
+          undefined, // Använd redan inställd video-ström
+          cameraVideoRef.current!,
           (result, error) => {
             if (!isActive) return;
             
@@ -340,7 +367,8 @@ export default function ToGoPage() {
           }
         );
         
-        console.log("Kameraskanning startad!");
+        console.log("Kameraskanning startad med förbättrad fokus!");
+        
       } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
         if (isActive) {
@@ -354,14 +382,9 @@ export default function ToGoPage() {
 
     return () => {
       isActive = false;
-      // Stoppa codeReader
-      if (codeReader) {
-        try {
-          // BrowserMultiFormatReader har inte en direkt stop-metod
-          // Men vi kan stoppa video-strömmen
-        } catch (e) {
-          console.log("Cleanup error:", e);
-        }
+      // Stoppa mediaStream
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
       }
       // Stoppa eventuella video-strömmar på video-elementet
       if (cameraVideoRef.current && cameraVideoRef.current.srcObject) {
