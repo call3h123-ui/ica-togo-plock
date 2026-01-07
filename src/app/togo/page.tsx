@@ -714,7 +714,7 @@ export default function ToGoPage() {
                   <h3 style={{ marginBottom: "clamp(8px, 2vw, 12px)", fontSize: "clamp(0.95em, 2vw, 1.05em)", color: "#666" }}>{catName}</h3>
                   <div style={{ display: "grid", gap: "clamp(8px, 2vw, 12px)" }}>
                     {items.map((r) => (
-                      <RowCard key={r.id} row={r} categories={categories} onChanged={refresh} />
+                      <RowCard key={r.id} row={r} categories={categories} storeId={storeId} onChanged={refresh} />
                     ))}
                   </div>
                 </div>
@@ -1372,7 +1372,7 @@ export default function ToGoPage() {
   );
 }
 
-function RowCard({ row, categories, onChanged }: { row: OrderRow; categories: Category[]; onChanged: () => void }) {
+function RowCard({ row, categories, storeId, onChanged }: { row: OrderRow; categories: Category[]; storeId: string; onChanged: () => void }) {
   const [qty, setQty] = useState<number>(row.qty);
   const [catId, setCatId] = useState<string>(row.category_id);
 
@@ -1382,21 +1382,21 @@ function RowCard({ row, categories, onChanged }: { row: OrderRow; categories: Ca
   }, [row.qty, row.category_id]);
 
   async function inc(delta: number) {
-    await rpcIncrement(row.ean, catId, delta);
+    await rpcIncrement(row.ean, catId, delta, storeId);
     onChanged();
   }
 
   async function setExact(v: number) {
     const n = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
     setQty(n);
-    await rpcSetQty(row.ean, catId, n);
+    await rpcSetQty(row.ean, catId, n, storeId);
     onChanged();
   }
 
   async function changeCategory(newId: string) {
     setCatId(newId);
     // Update the order item's category
-    await rpcSetQty(row.ean, newId, qty);
+    await rpcSetQty(row.ean, newId, qty, storeId);
     // Also update the product's default category for future use
     await updateProduct(row.ean, { default_category_id: newId });
     onChanged();
@@ -1443,7 +1443,7 @@ function RowCard({ row, categories, onChanged }: { row: OrderRow; categories: Ca
         <button
           onClick={async () => {
             if (!confirm("Ta bort denna rad?")) return;
-            await rpcSetQty(row.ean, catId, 0);
+            await rpcSetQty(row.ean, catId, 0, storeId);
             onChanged();
           }}
           aria-label="Ta bort"
