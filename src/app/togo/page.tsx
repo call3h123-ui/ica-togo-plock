@@ -63,6 +63,9 @@ export default function ToGoPage() {
   const [storeName, setStoreName] = useState<string>("");
   const scanRef = useRef<HTMLInputElement | null>(null);
   const modalScanRef = useRef<HTMLInputElement | null>(null);
+  
+  // Ref för att undvika stale closures i kameraskanning
+  const handleScanRef = useRef<(value: string) => Promise<void>>();
 
   // Ny artikel modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -87,14 +90,22 @@ export default function ToGoPage() {
   const [editingCatName, setEditingCatName] = useState("");
   const [newCatName, setNewCatName] = useState("");
   
-  // Scanner mode toggle
-  const [scannerMode, setScannerMode] = useState(() => {
+  // Scanner mode: 'handheld' = handskanner, 'camera' = mobilkamera, 'manual' = manuell inmatning
+  const [scannerMode, setScannerMode] = useState<'handheld' | 'camera' | 'manual'>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("scannerMode");
-      return saved === null ? true : saved === "true";
+      if (saved === 'handheld' || saved === 'camera' || saved === 'manual') {
+        return saved;
+      }
     }
-    return true;
+    return 'handheld';
   });
+
+  // Kameraskanning
+  const [cameraActive, setCameraActive] = useState(false);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const scannerRef = useRef<any>(null);
 
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
@@ -261,8 +272,53 @@ export default function ToGoPage() {
   // Save scanner mode to localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("scannerMode", String(scannerMode));
+      localStorage.setItem("scannerMode", scannerMode);
     }
+  }, [scannerMode]);
+
+  // Start/stop camera barcode scanning
+  useEffect(() => {
+    if (cameraActive && cameraVideoRef.current) {
+      const codeReader = new BrowserMultiFormatReader();
+      scannerRef.current = codeReader;
+      
+      codeReader.decodeFromVideoDevice(
+        undefined, // använd default kamera (bakre om möjlig)
+        cameraVideoRef.current,
+        (result, error) => {
+          if (result) {
+            const ean = cleanEan(result.getText());
+            if (ean) {
+              // Vibrera om möjligt för feedback
+              if (navigator.vibrate) navigator.vibrate(100);
+              // Använd ref för att undvika stale closure
+              if (handleScanRef.current) {
+                handleScanRef.current(ean);
+              }
+            }
+          }
+        }
+      ).catch((err) => {
+        console.error("Kunde inte starta kameraskanning:", err);
+        alert("Kunde inte starta kameran. Kontrollera att du gett tillåtelse.");
+        setCameraActive(false);
+      });
+    }
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.reset();
+        scannerRef.current = null;
+      }
+    };
+  }, [cameraActive]);
+
+  // Stoppa kamera när man byter läge från kamera
+  useEffect(() => {
+    if (scannerMode !== 'camera' && cameraActive) {
+      setCameraActive(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scannerMode]);
 
   // Separate effect for refresh that depends on storeId
@@ -444,6 +500,10 @@ export default function ToGoPage() {
     }
   }
 
+  // Uppdatera ref för kameraskanning
+  useEffect(() => {
+    handleScanRef.current = handleScanSubmit;
+  });
   async function saveNewProduct() {
     if (!newName.trim()) return alert("Skriv produktnamn.");
     if (!newBrand.trim()) return alert("Skriv varumärke.");
@@ -576,29 +636,74 @@ export default function ToGoPage() {
           <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button 
-            onClick={() => setScannerMode(!scannerMode)}
-            style={{ 
-              padding: "10px 16px", 
-              background: scannerMode ? "#E4002B" : "#f0f0f0", 
-              color: scannerMode ? "white" : "#333", 
-              border: "none",
-              borderRadius: 8, 
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "all 0.2s",
-              whiteSpace: "nowrap",
-              minHeight: "44px",
-              display: "flex",
-              alignItems: "center",
-              fontSize: "clamp(0.85em, 2vw, 0.95em)"
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = scannerMode ? "#cc0024" : "#e0e0e0")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = scannerMode ? "#E4002B" : "#f0f0f0")}
-            title={scannerMode ? "Scanner mode på" : "Scanner mode av"}
-          >
-            📱 Scanner
-          </button>
+          <div style={{ display: "flex", gap: 4, background: "#f0f0f0", borderRadius: 8, padding: 4 }}>
+            <button 
+              onClick={() => setScannerMode('handheld')}
+              style={{ 
+                padding: "8px 12px", 
+                background: scannerMode === 'handheld' ? "#E4002B" : "transparent", 
+                color: scannerMode === 'handheld' ? "white" : "#333", 
+                border: "none",
+                borderRadius: 6, 
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                minHeight: "36px",
+                display: "flex",
+                alignItems: "center",
+                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
+              }}
+              title="Handskanner (utan tangentbord)"
+            >
+              🔫 Skanner
+            </button>
+            <button 
+              onClick={() => {
+                setScannerMode('camera');
+                setCameraActive(true);
+              }}
+              style={{ 
+                padding: "8px 12px", 
+                background: scannerMode === 'camera' ? "#E4002B" : "transparent", 
+                color: scannerMode === 'camera' ? "white" : "#333", 
+                border: "none",
+                borderRadius: 6, 
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                minHeight: "36px",
+                display: "flex",
+                alignItems: "center",
+                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
+              }}
+              title="Mobilkamera"
+            >
+              📷 Kamera
+            </button>
+            <button 
+              onClick={() => setScannerMode('manual')}
+              style={{ 
+                padding: "8px 12px", 
+                background: scannerMode === 'manual' ? "#E4002B" : "transparent", 
+                color: scannerMode === 'manual' ? "white" : "#333", 
+                border: "none",
+                borderRadius: 6, 
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                minHeight: "36px",
+                display: "flex",
+                alignItems: "center",
+                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
+              }}
+              title="Manuell EAN-inmatning"
+            >
+              ⌨️ Manuell
+            </button>
+          </div>
           <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
@@ -645,33 +750,142 @@ export default function ToGoPage() {
         </div>
       </div>
 
-      <div style={{ display: modalOpen ? "none" : "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)", position: "relative", zIndex: 100 }}>
-        <input
-          ref={scanRef}
-          value={scanValue}
-          onChange={(e) => {
-            // Only allow numeric characters
-            const numericValue = e.target.value.replace(/[^0-9]/g, "");
-            setScanValue(numericValue);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              // use current input value to avoid stale closure
-              handleScanSubmit((e.target as HTMLInputElement).value);
-            }
-          }}
-          placeholder="Skanna EAN här"
-          type="text"
-          inputMode={scannerMode ? "none" : "numeric"}
-          readOnly={scannerMode}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck="false"
-          pattern="[0-9]*"
-          style={{ flex: "1 1 280px", minWidth: "200px", padding: "clamp(10px, 2vw, 12px)", fontSize: "clamp(14px, 2vw, 16px)", borderRadius: 8, border: "2px solid #E4002B" }}
-        />
+      <div style={{ display: modalOpen ? "none" : "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)", position: "relative", zIndex: 100 }}>
+        
+        {/* Kamera-vy om kameraläge är aktivt */}
+        {scannerMode === 'camera' && cameraActive && (
+          <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
+            <video
+              ref={cameraVideoRef}
+              style={{
+                width: "100%",
+                borderRadius: 8,
+                border: "3px solid #E4002B",
+                background: "#000"
+              }}
+              autoPlay
+              playsInline
+              muted
+            />
+            <div style={{
+              position: "absolute",
+              top: "50%",
+              left: "10%",
+              right: "10%",
+              height: 2,
+              background: "#E4002B",
+              opacity: 0.7,
+              animation: "pulse 1.5s infinite"
+            }} />
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 0.9; }
+              }
+            `}</style>
+            <button
+              onClick={() => setCameraActive(false)}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                padding: "6px 10px",
+                background: "rgba(0,0,0,0.7)",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: "0.85em"
+              }}
+            >
+              ✕ Stäng
+            </button>
+            <div style={{
+              position: "absolute",
+              bottom: 8,
+              left: 8,
+              right: 8,
+              padding: "8px",
+              background: "rgba(0,0,0,0.7)",
+              color: "white",
+              borderRadius: 6,
+              textAlign: "center",
+              fontSize: "0.85em"
+            }}>
+              📷 Rikta kameran mot streckkoden
+            </div>
+          </div>
+        )}
+
+        {/* Knapp för att starta kameran igen om den stängts */}
+        {scannerMode === 'camera' && !cameraActive && (
+          <button
+            onClick={() => setCameraActive(true)}
+            style={{
+              padding: "16px 24px",
+              background: "#E4002B",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontSize: "1em",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8
+            }}
+          >
+            📷 Starta kameraskanning
+          </button>
+        )}
+
+        {/* Input-fält för handskanner och manuell inmatning */}
+        {scannerMode !== 'camera' && (
+          <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              ref={scanRef}
+              value={scanValue}
+              onChange={(e) => {
+                // Only allow numeric characters
+                const numericValue = e.target.value.replace(/[^0-9]/g, "");
+                setScanValue(numericValue);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // use current input value to avoid stale closure
+                  handleScanSubmit((e.target as HTMLInputElement).value);
+                }
+              }}
+              placeholder={scannerMode === 'handheld' ? "Skanna med handskanner..." : "Skriv EAN-kod här"}
+              type="text"
+              inputMode={scannerMode === 'handheld' ? "none" : "numeric"}
+              readOnly={scannerMode === 'handheld'}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
+              autoCapitalize="off"
+              pattern="[0-9]*"
+              style={{ 
+                flex: "1 1 280px", 
+                minWidth: "200px", 
+                padding: "clamp(10px, 2vw, 12px)", 
+                fontSize: "clamp(14px, 2vw, 16px)", 
+                borderRadius: 8, 
+                border: "2px solid #E4002B",
+                background: scannerMode === 'handheld' ? "#f5f5f5" : "white",
+                caretColor: scannerMode === 'handheld' ? "transparent" : "auto"
+              }}
+            />
+            {scannerMode === 'handheld' && (
+              <div style={{ fontSize: "0.85em", color: "#666", padding: "4px 8px", background: "#e8f4e8", borderRadius: 4 }}>
+                🔫 Handskanner aktiv
+              </div>
+            )}
+          </div>
+        )}
 
         <button 
           onClick={() => {
@@ -757,7 +971,7 @@ export default function ToGoPage() {
 
       {modalOpen && (
         <div style={modalStyle.overlay}>
-          <div style={modalStyle.card}>
+          <div style={{ ...modalStyle.card, position: "relative" }}>
             {/* Banner för redan befintlig vara - innanför modal */}
             {alreadyExistsBanner && (
               <div style={{
@@ -776,45 +990,162 @@ export default function ToGoPage() {
             )}
             
             {/* Liten EAN-info och kamera innanför modalen */}
-            <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", alignItems: "center", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
-            <input
-              ref={modalScanRef}
-              value={scanValue}
-              onChange={(e) => {
-                // Only allow numeric characters
-                const numericValue = e.target.value.replace(/[^0-9]/g, "");
-                setScanValue(numericValue);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleScanSubmit((e.target as HTMLInputElement).value);
-                }
-              }}
-              placeholder="Scanna ny vara"
-              type="text"
-              inputMode={scannerMode ? "none" : "numeric"}
-              readOnly={scannerMode}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
-              pattern="[0-9]*"
-              style={{ flex: "1 1 150px", minWidth: "120px", padding: "clamp(6px, 1.5vw, 8px)", fontSize: "clamp(12px, 1.5vw, 14px)", borderRadius: 6, border: "1px solid #E4002B" }}
-            />
-            <button
-              onClick={() => {
-                setModalOpen(false);
-                scanRef.current?.focus();
-              }}
-              style={{ padding: "6px 10px", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#666", minWidth: "auto", lineHeight: 1 }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#E4002B")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
-              title="Stäng"
-            >
-              ✕
-            </button>
-          </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
+              
+              {/* Lägesväljare inuti modal */}
+              <div style={{ display: "flex", gap: 4, background: "#e0e0e0", borderRadius: 6, padding: 3, width: "fit-content" }}>
+                <button 
+                  onClick={() => { setScannerMode('handheld'); setCameraActive(false); }}
+                  style={{ 
+                    padding: "4px 8px", 
+                    background: scannerMode === 'handheld' ? "#E4002B" : "transparent", 
+                    color: scannerMode === 'handheld' ? "white" : "#666", 
+                    border: "none",
+                    borderRadius: 4, 
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "0.75em"
+                  }}
+                >
+                  🔫
+                </button>
+                <button 
+                  onClick={() => { setScannerMode('camera'); setCameraActive(true); }}
+                  style={{ 
+                    padding: "4px 8px", 
+                    background: scannerMode === 'camera' ? "#E4002B" : "transparent", 
+                    color: scannerMode === 'camera' ? "white" : "#666", 
+                    border: "none",
+                    borderRadius: 4, 
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "0.75em"
+                  }}
+                >
+                  📷
+                </button>
+                <button 
+                  onClick={() => { setScannerMode('manual'); setCameraActive(false); }}
+                  style={{ 
+                    padding: "4px 8px", 
+                    background: scannerMode === 'manual' ? "#E4002B" : "transparent", 
+                    color: scannerMode === 'manual' ? "white" : "#666", 
+                    border: "none",
+                    borderRadius: 4, 
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: "0.75em"
+                  }}
+                >
+                  ⌨️
+                </button>
+              </div>
+
+              {/* Kamera-vy i modal */}
+              {scannerMode === 'camera' && cameraActive && (
+                <div style={{ position: "relative", width: "100%" }}>
+                  <video
+                    ref={cameraVideoRef}
+                    style={{
+                      width: "100%",
+                      maxHeight: 200,
+                      borderRadius: 6,
+                      border: "2px solid #E4002B",
+                      background: "#000",
+                      objectFit: "cover"
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                  <div style={{
+                    position: "absolute",
+                    bottom: 4,
+                    left: 4,
+                    right: 4,
+                    padding: "4px",
+                    background: "rgba(0,0,0,0.6)",
+                    color: "white",
+                    borderRadius: 4,
+                    textAlign: "center",
+                    fontSize: "0.75em"
+                  }}>
+                    Rikta mot streckkod
+                  </div>
+                </div>
+              )}
+
+              {/* Input för handskanner/manuell */}
+              {scannerMode !== 'camera' && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    ref={modalScanRef}
+                    value={scanValue}
+                    onChange={(e) => {
+                      const numericValue = e.target.value.replace(/[^0-9]/g, "");
+                      setScanValue(numericValue);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleScanSubmit((e.target as HTMLInputElement).value);
+                      }
+                    }}
+                    placeholder={scannerMode === 'handheld' ? "Skanna..." : "Skriv EAN"}
+                    type="text"
+                    inputMode={scannerMode === 'handheld' ? "none" : "numeric"}
+                    readOnly={scannerMode === 'handheld'}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    autoCapitalize="off"
+                    pattern="[0-9]*"
+                    style={{ 
+                      flex: "1 1 150px", 
+                      minWidth: "120px", 
+                      padding: "clamp(6px, 1.5vw, 8px)", 
+                      fontSize: "clamp(12px, 1.5vw, 14px)", 
+                      borderRadius: 6, 
+                      border: "1px solid #E4002B",
+                      background: scannerMode === 'handheld' ? "#f0f0f0" : "white",
+                      caretColor: scannerMode === 'handheld' ? "transparent" : "auto"
+                    }}
+                  />
+                  {scannerMode === 'handheld' && (
+                    <span style={{ fontSize: "0.7em", color: "#666" }}>🔫</span>
+                  )}
+                </div>
+              )}
+
+              {/* Stäng-knapp */}
+              <button
+                onClick={() => {
+                  setModalOpen(false);
+                  setCameraActive(false);
+                  scanRef.current?.focus();
+                }}
+                style={{ 
+                  position: "absolute", 
+                  top: 8, 
+                  right: 8, 
+                  padding: "6px 10px", 
+                  background: "none", 
+                  border: "none", 
+                  fontSize: 18, 
+                  cursor: "pointer", 
+                  color: "#666", 
+                  minWidth: "auto", 
+                  lineHeight: 1,
+                  zIndex: 10
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#E4002B")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+                title="Stäng"
+              >
+                ✕
+              </button>
+            </div>
 
             {loadingProduct && (
               <div style={{ background: "#e8f4f8", padding: 12, borderRadius: 8, marginBottom: 12, textAlign: "center", color: "#0066cc", fontSize: "0.9em" }}>
@@ -1112,6 +1443,7 @@ export default function ToGoPage() {
               <button
                 onClick={() => {
                   setModalOpen(false);
+                  setCameraActive(false);
                   scanRef.current?.focus();
                 }}
                 style={{ padding: 14, width: "100%", background: "#E4002B", color: "white", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 16, transition: "all 0.2s" }}
