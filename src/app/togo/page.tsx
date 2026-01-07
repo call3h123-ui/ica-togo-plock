@@ -274,43 +274,94 @@ export default function ToGoPage() {
     }
   }, [scannerMode]);
 
+  // Ref för att hålla koll på senast skannade EAN (undvik dubbelskanning)
+  const lastScannedRef = useRef<string>("");
+  const lastScannedTimeRef = useRef<number>(0);
+
   // Start/stop camera barcode scanning
   useEffect(() => {
     let codeReader: BrowserMultiFormatReader | null = null;
-    let controls: any = null;
+    let isActive = true;
 
-    if (cameraActive && cameraVideoRef.current) {
-      codeReader = new BrowserMultiFormatReader();
-      
-      codeReader.decodeFromVideoDevice(
-        undefined, // använd default kamera (bakre om möjlig)
-        cameraVideoRef.current,
-        (result, error) => {
-          if (result) {
-            const ean = cleanEan(result.getText());
-            if (ean) {
-              // Vibrera om möjligt för feedback
-              if (navigator.vibrate) navigator.vibrate(100);
-              // Använd ref för att undvika stale closure
-              if (handleScanRef.current) {
-                handleScanRef.current(ean);
+    async function startScanning() {
+      if (!cameraActive || !cameraVideoRef.current) return;
+
+      try {
+        codeReader = new BrowserMultiFormatReader();
+        
+        // Hämta tillgängliga videoinputs
+        const videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
+        console.log("Tillgängliga kameror:", videoInputDevices);
+        
+        // Välj bakre kamera om möjligt
+        let selectedDeviceId: string | undefined = undefined;
+        const backCamera = videoInputDevices.find(device => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('rear') ||
+          device.label.toLowerCase().includes('environment')
+        );
+        if (backCamera) {
+          selectedDeviceId = backCamera.deviceId;
+        } else if (videoInputDevices.length > 0) {
+          // På de flesta mobiler är den sista kameran bakre kameran
+          selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
+        }
+
+        console.log("Använder kamera:", selectedDeviceId);
+
+        // Starta kontinuerlig skanning
+        await codeReader.decodeFromVideoDevice(
+          selectedDeviceId,
+          cameraVideoRef.current,
+          (result, error) => {
+            if (!isActive) return;
+            
+            if (result) {
+              const ean = cleanEan(result.getText());
+              const now = Date.now();
+              
+              // Undvik dubbelskanning av samma kod inom 2 sekunder
+              if (ean && (ean !== lastScannedRef.current || now - lastScannedTimeRef.current > 2000)) {
+                lastScannedRef.current = ean;
+                lastScannedTimeRef.current = now;
+                
+                console.log("Skannade streckkod:", ean);
+                
+                // Vibrera om möjligt för feedback
+                if (navigator.vibrate) navigator.vibrate(100);
+                
+                // Använd ref för att undvika stale closure
+                if (handleScanRef.current) {
+                  handleScanRef.current(ean);
+                }
               }
             }
+            // Ignorera fel - det är normalt att det inte hittas streckkod i varje frame
           }
-        }
-      ).then((c) => {
-        controls = c;
-      }).catch((err) => {
+        );
+        
+        console.log("Kameraskanning startad!");
+      } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
-        alert("Kunde inte starta kameran. Kontrollera att du gett tillåtelse.");
-        setCameraActive(false);
-      });
+        if (isActive) {
+          alert("Kunde inte starta kameran. Kontrollera att du gett tillåtelse och att sidan använder HTTPS.");
+          setCameraActive(false);
+        }
+      }
     }
 
+    startScanning();
+
     return () => {
-      // Stoppa video-strömmen korrekt
-      if (controls && typeof controls.stop === 'function') {
-        controls.stop();
+      isActive = false;
+      // Stoppa codeReader
+      if (codeReader) {
+        try {
+          // BrowserMultiFormatReader har inte en direkt stop-metod
+          // Men vi kan stoppa video-strömmen
+        } catch (e) {
+          console.log("Cleanup error:", e);
+        }
       }
       // Stoppa eventuella video-strömmar på video-elementet
       if (cameraVideoRef.current && cameraVideoRef.current.srcObject) {
