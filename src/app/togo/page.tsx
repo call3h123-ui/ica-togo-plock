@@ -104,8 +104,6 @@ export default function ToGoPage() {
   // Kameraskanning
   const [cameraActive, setCameraActive] = useState(false);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
-  const cameraStreamRef = useRef<MediaStream | null>(null);
-  const scannerRef = useRef<any>(null);
 
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
@@ -278,9 +276,11 @@ export default function ToGoPage() {
 
   // Start/stop camera barcode scanning
   useEffect(() => {
+    let codeReader: BrowserMultiFormatReader | null = null;
+    let controls: any = null;
+
     if (cameraActive && cameraVideoRef.current) {
-      const codeReader = new BrowserMultiFormatReader();
-      scannerRef.current = codeReader;
+      codeReader = new BrowserMultiFormatReader();
       
       codeReader.decodeFromVideoDevice(
         undefined, // använd default kamera (bakre om möjlig)
@@ -298,7 +298,9 @@ export default function ToGoPage() {
             }
           }
         }
-      ).catch((err) => {
+      ).then((c) => {
+        controls = c;
+      }).catch((err) => {
         console.error("Kunde inte starta kameraskanning:", err);
         alert("Kunde inte starta kameran. Kontrollera att du gett tillåtelse.");
         setCameraActive(false);
@@ -306,9 +308,15 @@ export default function ToGoPage() {
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.reset();
-        scannerRef.current = null;
+      // Stoppa video-strömmen korrekt
+      if (controls && typeof controls.stop === 'function') {
+        controls.stop();
+      }
+      // Stoppa eventuella video-strömmar på video-elementet
+      if (cameraVideoRef.current && cameraVideoRef.current.srcObject) {
+        const stream = cameraVideoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        cameraVideoRef.current.srcObject = null;
       }
     };
   }, [cameraActive]);
