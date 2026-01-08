@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import { Html5Qrcode } from "html5-qrcode";
 import * as XLSX from "xlsx";
 
 function cleanEan(raw: string) {
@@ -103,7 +103,6 @@ export default function ToGoPage() {
 
   // Kameraskanning
   const [cameraActive, setCameraActive] = useState(false);
-  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
@@ -277,97 +276,85 @@ export default function ToGoPage() {
   // Ref för att hålla koll på senast skannade EAN (undvik dubbelskanning)
   const lastScannedRef = useRef<string>("");
   const lastScannedTimeRef = useRef<number>(0);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
-  // Start/stop camera barcode scanning
+  // Start/stop camera barcode scanning med html5-qrcode
   useEffect(() => {
     let isActive = true;
-    let mediaStream: MediaStream | null = null;
 
     async function startScanning() {
-      if (!cameraActive || !cameraVideoRef.current) return;
+      if (!cameraActive) return;
+
+      // Vänta lite så DOM hinner renderas
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Försök hitta scanner-element (huvudvy eller modal)
+      let scannerId = "html5-qrcode-scanner";
+      let scannerElement = document.getElementById(scannerId);
+      
+      if (!scannerElement) {
+        scannerId = "html5-qrcode-scanner-modal";
+        scannerElement = document.getElementById(scannerId);
+      }
+      
+      if (!scannerElement) {
+        console.error("Scanner element hittades inte (varken huvud eller modal)");
+        return;
+      }
+
+      console.log("Använder scanner-element:", scannerId);
 
       try {
-        // Först, begär kamera med optimala inställningar för streckkodsläsning
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: 'environment' }, // Bakre kamera
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+        // Stoppa eventuell befintlig scanner först
+        if (html5QrCodeRef.current) {
+          try {
+            await html5QrCodeRef.current.stop();
+          } catch (e) {
+            // Ignorera
           }
-        };
-
-        try {
-          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-          
-          // Försök aktivera kontinuerlig autofokus om det stöds
-          const videoTrack = mediaStream.getVideoTracks()[0];
-          if (videoTrack) {
-            const capabilities = videoTrack.getCapabilities?.() as any;
-            console.log("Kamerakapaciteter:", capabilities);
-            
-            if (capabilities?.focusMode?.includes('continuous')) {
-              try {
-                await videoTrack.applyConstraints({
-                  // @ts-ignore
-                  advanced: [{ focusMode: 'continuous' }]
-                });
-                console.log("Kontinuerlig autofokus aktiverad!");
-              } catch (e) {
-                console.log("Kunde inte sätta fokusläge:", e);
-              }
-            }
-          }
-          
-          // Sätt strömmen till video-elementet
-          cameraVideoRef.current.srcObject = mediaStream;
-          await cameraVideoRef.current.play();
-          
-        } catch (e) {
-          console.log("Kunde inte få optimal kamera, försöker enkel:", e);
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-          });
-          if (cameraVideoRef.current) {
-            cameraVideoRef.current.srcObject = mediaStream;
-            await cameraVideoRef.current.play();
-          }
+          html5QrCodeRef.current = null;
         }
 
-        // Skapa codeReader och börja skanna
-        const codeReader = new BrowserMultiFormatReader();
-        
-        // Använd decodeFromVideoDevice med callback för kontinuerlig skanning
-        codeReader.decodeFromVideoDevice(
-          undefined, // Använd redan inställd video-ström
-          cameraVideoRef.current!,
-          (result, error) => {
+        const html5QrCode = new Html5Qrcode(scannerId);
+        html5QrCodeRef.current = html5QrCode;
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 100 },
+          aspectRatio: 1.5,
+        };
+
+        await html5QrCode.start(
+          { facingMode: "environment" }, // Bakre kamera
+          config,
+          (decodedText) => {
             if (!isActive) return;
             
-            if (result) {
-              const ean = cleanEan(result.getText());
-              const now = Date.now();
+            const ean = cleanEan(decodedText);
+            const now = Date.now();
+            
+            // Undvik dubbelskanning av samma kod inom 2 sekunder
+            if (ean && (ean !== lastScannedRef.current || now - lastScannedTimeRef.current > 2000)) {
+              lastScannedRef.current = ean;
+              lastScannedTimeRef.current = now;
               
-              // Undvik dubbelskanning av samma kod inom 2 sekunder
-              if (ean && (ean !== lastScannedRef.current || now - lastScannedTimeRef.current > 2000)) {
-                lastScannedRef.current = ean;
-                lastScannedTimeRef.current = now;
-                
-                console.log("Skannade streckkod:", ean);
-                
-                // Vibrera om möjligt för feedback
-                if (navigator.vibrate) navigator.vibrate(100);
-                
-                // Använd ref för att undvika stale closure
-                if (handleScanRef.current) {
-                  handleScanRef.current(ean);
-                }
+              console.log("Skannade streckkod:", ean);
+              
+              // Vibrera om möjligt för feedback
+              if (navigator.vibrate) navigator.vibrate(100);
+              
+              // Använd ref för att undvika stale closure
+              if (handleScanRef.current) {
+                handleScanRef.current(ean);
               }
             }
-            // Ignorera fel - det är normalt att det inte hittas streckkod i varje frame
+          },
+          (errorMessage) => {
+            // Ignorera - inget hittat i denna frame
           }
         );
         
-        console.log("Kameraskanning startad med förbättrad fokus!");
+        console.log("html5-qrcode skanning startad!");
         
       } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
@@ -382,18 +369,13 @@ export default function ToGoPage() {
 
     return () => {
       isActive = false;
-      // Stoppa mediaStream
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-      // Stoppa eventuella video-strömmar på video-elementet
-      if (cameraVideoRef.current && cameraVideoRef.current.srcObject) {
-        const stream = cameraVideoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        cameraVideoRef.current.srcObject = null;
+      // Stoppa html5-qrcode
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(e => console.log("Stop error:", e));
+        html5QrCodeRef.current = null;
       }
     };
-  }, [cameraActive]);
+  }, [cameraActive, modalOpen]);
 
   // Stoppa kamera när man byter läge från kamera
   useEffect(() => {
@@ -834,35 +816,30 @@ export default function ToGoPage() {
 
       <div style={{ display: modalOpen ? "none" : "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)", position: "relative", zIndex: 100 }}>
         
-        {/* Kamera-vy om kameraläge är aktivt */}
+        {/* Kamera-vy om kameraläge är aktivt - använder html5-qrcode */}
         {scannerMode === 'camera' && cameraActive && (
           <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
-            <video
-              ref={cameraVideoRef}
+            <div 
+              id="html5-qrcode-scanner"
               style={{
                 width: "100%",
                 borderRadius: 8,
                 border: "3px solid #E4002B",
-                background: "#000"
+                overflow: "hidden"
               }}
-              autoPlay
-              playsInline
-              muted
             />
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "10%",
-              right: "10%",
-              height: 2,
-              background: "#E4002B",
-              opacity: 0.7,
-              animation: "pulse 1.5s infinite"
-            }} />
             <style>{`
-              @keyframes pulse {
-                0%, 100% { opacity: 0.3; }
-                50% { opacity: 0.9; }
+              #html5-qrcode-scanner video {
+                border-radius: 8px;
+              }
+              #html5-qrcode-scanner__scan_region {
+                background: #000 !important;
+              }
+              #html5-qrcode-scanner__dashboard_section {
+                display: none !important;
+              }
+              #html5-qrcode-scanner__dashboard_section_csr {
+                display: none !important;
               }
             `}</style>
             <button
@@ -877,7 +854,8 @@ export default function ToGoPage() {
                 border: "none",
                 borderRadius: 6,
                 cursor: "pointer",
-                fontSize: "0.85em"
+                fontSize: "0.85em",
+                zIndex: 10
               }}
             >
               ✕ Stäng
@@ -892,7 +870,8 @@ export default function ToGoPage() {
               color: "white",
               borderRadius: 6,
               textAlign: "center",
-              fontSize: "0.85em"
+              fontSize: "0.85em",
+              zIndex: 10
             }}>
               📷 Rikta kameran mot streckkoden
             </div>
@@ -1123,23 +1102,28 @@ export default function ToGoPage() {
                 </button>
               </div>
 
-              {/* Kamera-vy i modal */}
+              {/* Kamera-vy i modal - använder html5-qrcode */}
               {scannerMode === 'camera' && cameraActive && (
                 <div style={{ position: "relative", width: "100%" }}>
-                  <video
-                    ref={cameraVideoRef}
+                  <div 
+                    id="html5-qrcode-scanner-modal"
                     style={{
                       width: "100%",
                       maxHeight: 200,
                       borderRadius: 6,
                       border: "2px solid #E4002B",
-                      background: "#000",
-                      objectFit: "cover"
+                      overflow: "hidden"
                     }}
-                    autoPlay
-                    playsInline
-                    muted
                   />
+                  <style>{`
+                    #html5-qrcode-scanner-modal video {
+                      max-height: 200px !important;
+                      object-fit: cover;
+                    }
+                    #html5-qrcode-scanner-modal__dashboard_section {
+                      display: none !important;
+                    }
+                  `}</style>
                   <div style={{
                     position: "absolute",
                     bottom: 4,
@@ -1150,7 +1134,8 @@ export default function ToGoPage() {
                     color: "white",
                     borderRadius: 4,
                     textAlign: "center",
-                    fontSize: "0.75em"
+                    fontSize: "0.75em",
+                    zIndex: 10
                   }}>
                     Rikta mot streckkod
                   </div>
