@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import * as XLSX from "xlsx";
 
 function cleanEan(raw: string) {
@@ -337,13 +337,28 @@ export default function ToGoPage() {
           html5QrCodeRef.current = null;
         }
 
-        const html5QrCode = new Html5Qrcode(scannerId);
+        // Specificera alla streckkodsformat för bättre avläsning
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.ITF,
+        ];
+
+        const html5QrCode = new Html5Qrcode(scannerId, { 
+          formatsToSupport,
+          verbose: false 
+        });
         html5QrCodeRef.current = html5QrCode;
 
+        // Konfig utan qrbox = hela bilden analyseras (bättre för små koder)
         const config = {
-          fps: 15,
-          qrbox: { width: 300, height: 150 },
+          fps: 20,
           aspectRatio: 1.5,
+          disableFlip: false,
         };
 
         // Callback för lyckad skanning
@@ -374,9 +389,16 @@ export default function ToGoPage() {
           // Ignorera - inget hittat i denna frame
         };
 
-        // Starta kamera med enkla constraints (fungerar på alla enheter)
+        // Kamera-constraints med hög upplösning för bättre avläsning av små koder
+        const cameraConfig = {
+          facingMode: "environment",
+          width: { min: 640, ideal: 1920, max: 1920 },
+          height: { min: 480, ideal: 1080, max: 1080 }
+        };
+
+        // Starta kamera
         await html5QrCode.start(
-          { facingMode: "environment" },
+          cameraConfig,
           config,
           onScanSuccess,
           onScanError
@@ -384,7 +406,7 @@ export default function ToGoPage() {
         
         console.log("html5-qrcode skanning startad!");
         
-        // Försök höja upplösning och aktivera autofokus efter start
+        // Försök aktivera autofokus efter start
         setTimeout(async () => {
           try {
             const videoElement = document.querySelector(`#${scannerId} video`) as HTMLVideoElement;
@@ -394,21 +416,6 @@ export default function ToGoPage() {
               if (track) {
                 const capabilities = track.getCapabilities?.();
                 console.log("Kamera capabilities:", capabilities);
-                
-                // Försök höja upplösning om möjligt
-                try {
-                  // @ts-ignore
-                  const maxWidth = capabilities?.width?.max || 1280;
-                  // @ts-ignore
-                  const maxHeight = capabilities?.height?.max || 720;
-                  await track.applyConstraints({
-                    width: { ideal: Math.min(maxWidth, 1920) },
-                    height: { ideal: Math.min(maxHeight, 1080) }
-                  });
-                  console.log("Upplösning höjd");
-                } catch (e) {
-                  console.log("Kunde inte höja upplösning:", e);
-                }
                 
                 // @ts-ignore - focusMode finns på de flesta mobiler
                 if (capabilities?.focusMode?.includes('continuous')) {
