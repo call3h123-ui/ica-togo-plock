@@ -1727,6 +1727,34 @@ export default function ToGoPage() {
               </div>
             )}
 
+            {/* Knapp för att skanna ny artikel med kamera */}
+            {scannerMode === 'camera' && (
+              <button
+                onClick={() => {
+                  // Starta om kameran för att skanna ny artikel
+                  setCameraActive(false);
+                  setTimeout(() => setCameraActive(true), 100);
+                }}
+                style={{ 
+                  padding: 14, 
+                  width: "100%", 
+                  background: "#2563eb", 
+                  color: "white", 
+                  fontWeight: 600, 
+                  borderRadius: 8, 
+                  border: "none", 
+                  cursor: "pointer", 
+                  fontSize: 16, 
+                  transition: "all 0.2s",
+                  marginBottom: 8
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                📷 Skanna ny artikel
+              </button>
+            )}
+
             {/* Stäng - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
               <button
