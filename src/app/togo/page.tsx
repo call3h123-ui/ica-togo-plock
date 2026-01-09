@@ -348,10 +348,20 @@ export default function ToGoPage() {
     let isActive = true;
 
     async function startScanning() {
-      if (!cameraActive) return;
+      if (!cameraActive) {
+        console.log("startScanning avbruten: cameraActive är false");
+        return;
+      }
 
+      console.log("startScanning startar, väntar på DOM...");
+      
       // Vänta lite så DOM hinner renderas
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      if (!isActive) {
+        console.log("startScanning avbruten: isActive är false");
+        return;
+      }
 
       // Försök hitta scanner-element (huvudvy eller modal)
       let scannerId = "html5-qrcode-scanner";
@@ -364,7 +374,14 @@ export default function ToGoPage() {
       
       if (!scannerElement) {
         console.error("Scanner element hittades inte (varken huvud eller modal)");
-        return;
+        // Försök igen efter ytterligare delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        scannerElement = document.getElementById("html5-qrcode-scanner-modal") || document.getElementById("html5-qrcode-scanner");
+        if (!scannerElement) {
+          console.error("Scanner element hittades fortfarande inte efter extra väntan");
+          return;
+        }
+        scannerId = scannerElement.id;
       }
 
       console.log("Använder scanner-element:", scannerId);
@@ -515,14 +532,21 @@ export default function ToGoPage() {
       html5QrCodeRef.current = null;
     }
     
-    // Stäng av kameran
+    // Om kameran redan är av, starta den direkt
+    if (!cameraActive) {
+      console.log("Kameran var av, startar direkt");
+      setCameraActive(true);
+      return;
+    }
+    
+    // Annars stäng av och starta om
     setCameraActive(false);
     
     // Vänta så att React hinner uppdatera DOM
     setTimeout(() => {
       console.log("Startar kameran igen");
       setCameraActive(true);
-    }, 400);
+    }, 500);
   }, [cameraActive]);
 
   // Stoppa kamera när man byter läge från kamera
