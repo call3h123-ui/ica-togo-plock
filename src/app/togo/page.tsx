@@ -353,62 +353,37 @@ export default function ToGoPage() {
           // Ignorera - inget hittat i denna frame
         };
 
-        // Försök först med autofokus-constraints, fallback till enklare om det misslyckas
-        let started = false;
-        
-        // Försök 1: Med autofokus
-        try {
-          // @ts-ignore - focusMode stöds av de flesta mobiler men finns inte i alla TS-typer
-          const cameraConstraintsWithFocus: MediaTrackConstraints = {
-            facingMode: "environment",
-            // @ts-ignore
-            focusMode: "continuous"
-          };
-          
-          await html5QrCode.start(
-            cameraConstraintsWithFocus as any,
-            config,
-            onScanSuccess,
-            onScanError
-          );
-          started = true;
-          console.log("Kamera startad med autofokus-constraints");
-        } catch (focusErr) {
-          console.log("Kunde inte starta med autofokus, försöker utan:", focusErr);
-        }
-        
-        // Försök 2: Utan autofokus (fallback)
-        if (!started) {
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            onScanSuccess,
-            onScanError
-          );
-          console.log("Kamera startad utan autofokus-constraints");
-        }
+        // Starta kamera med enkla constraints (fungerar på alla enheter)
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onScanSuccess,
+          onScanError
+        );
         
         console.log("html5-qrcode skanning startad!");
         
-        // Försök aktivera autofokus via video-tracken efter start (fungerar på fler enheter)
-        try {
-          const videoElement = document.querySelector('#reader video') as HTMLVideoElement;
-          if (videoElement && videoElement.srcObject) {
-            const stream = videoElement.srcObject as MediaStream;
-            const track = stream.getVideoTracks()[0];
-            if (track) {
-              const capabilities = track.getCapabilities?.();
-              // @ts-ignore - focusMode finns på de flesta mobiler
-              if (capabilities?.focusMode?.includes('continuous')) {
-                // @ts-ignore
-                await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-                console.log("Autofokus aktiverat via track constraints");
+        // Försök aktivera autofokus via video-tracken efter start
+        setTimeout(async () => {
+          try {
+            const videoElement = document.querySelector('#reader video') as HTMLVideoElement;
+            if (videoElement && videoElement.srcObject) {
+              const stream = videoElement.srcObject as MediaStream;
+              const track = stream.getVideoTracks()[0];
+              if (track) {
+                const capabilities = track.getCapabilities?.();
+                // @ts-ignore - focusMode finns på de flesta mobiler
+                if (capabilities?.focusMode?.includes('continuous')) {
+                  // @ts-ignore
+                  await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                  console.log("Autofokus aktiverat via track constraints");
+                }
               }
             }
+          } catch (focusErr) {
+            console.log("Kunde inte aktivera autofokus:", focusErr);
           }
-        } catch (focusErr) {
-          console.log("Kunde inte aktivera autofokus via track:", focusErr);
-        }
+        }, 500);
         
       } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
