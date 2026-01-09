@@ -421,6 +421,9 @@ export default function ToGoPage() {
             // Vibrera om möjligt för feedback
             if (navigator.vibrate) navigator.vibrate(100);
             
+            // STOPPA kameran efter lyckad skanning för att undvika dubbelskanning
+            setCameraActive(false);
+            
             // Använd ref för att undvika stale closure
             if (handleScanRef.current) {
               handleScanRef.current(ean);
