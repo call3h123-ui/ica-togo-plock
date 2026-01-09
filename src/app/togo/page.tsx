@@ -13,6 +13,17 @@ function cleanEan(raw: string) {
   return raw.trim().replace(/\s/g, "");
 }
 
+function padEan(ean: string): string {
+  // Pad EAN code with zeros to make it 13 digits
+  return ean.padStart(13, '0');
+}
+
+function getIcaImageUrl(ean: string): string {
+  // Generate ICA asset image URL using EAN code
+  const paddedEan = padEan(ean);
+  return `https://assets.icanet.se/t_minbutik_preview,f_auto/${paddedEan}.jpg`;
+}
+
 function compressImage(dataUrl: string, callback: (compressedDataUrl: string) => void) {
   const img = new Image();
   img.onload = () => {
@@ -138,11 +149,16 @@ export default function ToGoPage() {
           // Gå igenom varje rad (börja från rad 0)
           for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            const ean = String(row[0] || "").trim();
+            let ean = String(row[0] || "").trim();
             const productName = String(row[1] || "").trim();
             const brand = String(row[2] || "").trim();
             const weight = String(row[3] || "").trim();
             const categoryName = String(row[4] || "").trim();
+            
+            // Pad EAN with zeros if shorter than 13 digits
+            if (ean) {
+              ean = padEan(ean);
+            }
             
             console.log(`Row ${i}:`, { ean, productName, brand, weight, categoryName });
             
@@ -164,23 +180,8 @@ export default function ToGoPage() {
             try {
               const existing = await ensureProduct(ean);
               
-              // Försök hämta bild från API om produkten är ny
-              let imageUrl: string | null = null;
-              try {
-                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
-                if (response.ok) {
-                  const data = await response.json();
-                  if (data.product) {
-                    if (data.product.image_url) {
-                      imageUrl = data.product.image_url;
-                    } else if (data.product.image_front_url) {
-                      imageUrl = data.product.image_front_url;
-                    }
-                  }
-                }
-              } catch (err) {
-                console.log(`Kunde inte hämta bild för ${ean}:`, err);
-              }
+              // Use ICA asset image URL
+              const imageUrl = getIcaImageUrl(ean);
               
               if (!existing) {
                 await createProduct({
@@ -192,17 +193,17 @@ export default function ToGoPage() {
                   image_url: imageUrl
                 });
                 createdCount++;
-                console.log(`Created: ${productName}${imageUrl ? ' (with image)' : ''}`);
+                console.log(`Created: ${productName} (with image)`);
               } else {
-                // Vid uppdatering: behåll befintlig bild om den finns, annars använd ny från API
+                // Vid uppdatering: behåll befintlig bild om den finns, annars använd ICA asset
                 const updateObj: any = {
                   name: productName,
                   brand: brand || null,
                   weight: weight || null,
                   default_category_id: categoryId
                 };
-                // Lägg till bild från API endast om produkten inte redan har en
-                if (imageUrl && !existing.image_url) {
+                // Lägg till bild från ICA endast om produkten inte redan har en
+                if (!existing.image_url) {
                   updateObj.image_url = imageUrl;
                 }
                 await updateProduct(ean, updateObj);
@@ -443,7 +444,9 @@ export default function ToGoPage() {
 
   async function handleScanSubmit(value: string) {
     try {
-      const ean = cleanEan(value);
+      let ean = cleanEan(value);
+      // Pad EAN with zeros if shorter than 13 digits
+      ean = padEan(ean);
       console.log("handleScanSubmit -> ean:", ean);
       if (!ean) {
         return;
@@ -495,6 +498,9 @@ export default function ToGoPage() {
         // Försök hämta produktinfo från extern API (Open Food Facts)
         setLoadingProduct(true);
         try {
+          // Set image from ICA assets
+          setNewImage(getIcaImageUrl(ean));
+          
           const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
           if (response.ok) {
             const data = await response.json();
@@ -502,11 +508,6 @@ export default function ToGoPage() {
               const prod = data.product;
               setNewName(prod.product_name || prod.name || "");
               setNewBrand(prod.brands || "");
-              if (prod.image_url) {
-                setNewImage(prod.image_url);
-              } else if (prod.image_front_url) {
-                setNewImage(prod.image_front_url);
-              }
               // fetch weight/quantity if available
               const w = prod.quantity || prod.serving_size || prod.nutriments?.serving_size || null;
               setNewWeight(w ?? null);
@@ -577,6 +578,9 @@ export default function ToGoPage() {
     try {
       // If there's an EAN, handle as usual (with product lookup/creation)
       if (newEan) {
+        // Ensure image is set from ICA assets if not already set
+        const imageToSave = newImage || getIcaImageUrl(newEan);
+        
         // Check if product already exists in order
         const existingOrderItem = rows.find(r => r.ean === newEan && r.qty > 0);
         
@@ -584,10 +588,10 @@ export default function ToGoPage() {
         const existing = await ensureProduct(newEan);
         if (!existing) {
           // New product - create it
-          await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+          await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: imageToSave, weight: newWeight ?? null });
         } else {
           // Product exists - update it with new details (including category)
-          await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null, default_category_id: catId });
+          await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: imageToSave, weight: newWeight ?? null, default_category_id: catId });
         }
         
         // If product already in order, update quantity instead of incrementing
