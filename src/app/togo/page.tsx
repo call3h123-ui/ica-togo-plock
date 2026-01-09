@@ -581,8 +581,8 @@ export default function ToGoPage() {
         // Ensure image is set from ICA assets if not already set
         const imageToSave = newImage || getIcaImageUrl(newEan);
         
-        // Check if product already exists in order
-        const existingOrderItem = rows.find(r => r.ean === newEan && r.qty > 0);
+        // Check if product already exists in order (only active, not picked items)
+        const existingOrderItem = rows.find(r => r.ean === newEan && r.qty > 0 && !r.is_picked);
         
         // Check if product already exists in database
         const existing = await ensureProduct(newEan);
