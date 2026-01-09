@@ -391,10 +391,18 @@ export default function ToGoPage() {
         if (html5QrCodeRef.current) {
           try {
             await html5QrCodeRef.current.stop();
+            console.log("Befintlig scanner stoppad");
           } catch (e) {
-            // Ignorera
+            console.log("Stop error (ignoreras):", e);
           }
           html5QrCodeRef.current = null;
+        }
+
+        // VIKTIGT: Rensa DOM-elementet helt innan vi skapar ny scanner
+        // html5-qrcode kan ha problem med att återanvända element
+        if (scannerElement) {
+          scannerElement.innerHTML = '';
+          console.log("Scanner-element rensat");
         }
 
         // Specificera alla streckkodsformat för bättre avläsning
@@ -463,14 +471,30 @@ export default function ToGoPage() {
         }
 
         // Starta kamera
-        await html5QrCode.start(
-          cameraIdOrConfig,
-          config,
-          onScanSuccess,
-          onScanError
-        );
-        
-        console.log("html5-qrcode skanning startad!");
+        console.log("Försöker starta kamera med config:", cameraIdOrConfig);
+        try {
+          await html5QrCode.start(
+            cameraIdOrConfig,
+            config,
+            onScanSuccess,
+            onScanError
+          );
+          console.log("html5-qrcode skanning startad!");
+        } catch (startErr) {
+          console.error("Kunde inte starta med vald kamera, försöker med facingMode:", startErr);
+          // Fallback till facingMode om specifikt kamera-ID misslyckades
+          if (selectedCameraId) {
+            await html5QrCode.start(
+              { facingMode: "environment" },
+              config,
+              onScanSuccess,
+              onScanError
+            );
+            console.log("html5-qrcode startad med facingMode fallback");
+          } else {
+            throw startErr;
+          }
+        }
         
         // Försök aktivera autofokus efter start
         setTimeout(async () => {
