@@ -1360,46 +1360,53 @@ export default function ToGoPage() {
               {/* Kamera-vy i modal - använder html5-qrcode */}
               {scannerMode === 'camera' && (
                 <div style={{ position: "relative", width: "100%" }}>
-                  {cameraActive ? (
+                  {/* Rendera alltid DOM-elementet men visa/göm baserat på cameraActive */}
+                  <div 
+                    id="html5-qrcode-scanner-modal"
+                    style={{
+                      width: "100%",
+                      maxHeight: cameraActive ? 200 : 0,
+                      minHeight: cameraActive ? 150 : 0,
+                      borderRadius: 6,
+                      border: cameraActive ? "2px solid #E4002B" : "none",
+                      overflow: "hidden",
+                      display: cameraActive ? "block" : "none"
+                    }}
+                  />
+                  {cameraActive && (
                     <>
-                      <div 
-                        id="html5-qrcode-scanner-modal"
-                        style={{
-                          width: "100%",
-                          maxHeight: 200,
-                          borderRadius: 6,
-                          border: "2px solid #E4002B",
-                          overflow: "hidden"
-                        }}
-                      />
                       <style>{`
                         #html5-qrcode-scanner-modal video {
                           max-height: 200px !important;
-                      object-fit: cover;
-                    }
-                    #html5-qrcode-scanner-modal__dashboard_section {
-                      display: none !important;
-                    }
-                  `}</style>
-                  {/* Instruktion om avstånd */}
-                  <div style={{
-                    position: "absolute",
-                    bottom: 4,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "rgba(0,0,0,0.7)",
-                    color: "white",
-                    padding: "4px 10px",
-                    borderRadius: 4,
-                    fontSize: "0.75em",
-                    zIndex: 10
-                  }}>
-                    📏 ~20 cm avstånd
-                  </div>
+                          object-fit: cover;
+                        }
+                        #html5-qrcode-scanner-modal__dashboard_section {
+                          display: none !important;
+                        }
+                      `}</style>
+                      {/* Instruktion om avstånd */}
+                      <div style={{
+                        position: "absolute",
+                        bottom: 4,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "rgba(0,0,0,0.7)",
+                        color: "white",
+                        padding: "4px 10px",
+                        borderRadius: 4,
+                        fontSize: "0.75em",
+                        zIndex: 10
+                      }}>
+                        📏 ~20 cm avstånd
+                      </div>
                     </>
-                  ) : (
+                  )}
+                  {!cameraActive && (
                     <button
-                      onClick={() => setCameraActive(true)}
+                      onClick={() => {
+                        console.log("Starta kamera-knapp klickad");
+                        setCameraActive(true);
+                      }}
                       style={{
                         width: "100%",
                         padding: "20px",
