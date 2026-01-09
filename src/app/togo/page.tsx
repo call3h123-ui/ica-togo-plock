@@ -1263,21 +1263,23 @@ export default function ToGoPage() {
               </div>
 
               {/* Kamera-vy i modal - använder html5-qrcode */}
-              {scannerMode === 'camera' && cameraActive && (
+              {scannerMode === 'camera' && (
                 <div style={{ position: "relative", width: "100%" }}>
-                  <div 
-                    id="html5-qrcode-scanner-modal"
-                    style={{
-                      width: "100%",
-                      maxHeight: 200,
-                      borderRadius: 6,
-                      border: "2px solid #E4002B",
-                      overflow: "hidden"
-                    }}
-                  />
-                  <style>{`
-                    #html5-qrcode-scanner-modal video {
-                      max-height: 200px !important;
+                  {cameraActive ? (
+                    <>
+                      <div 
+                        id="html5-qrcode-scanner-modal"
+                        style={{
+                          width: "100%",
+                          maxHeight: 200,
+                          borderRadius: 6,
+                          border: "2px solid #E4002B",
+                          overflow: "hidden"
+                        }}
+                      />
+                      <style>{`
+                        #html5-qrcode-scanner-modal video {
+                          max-height: 200px !important;
                       object-fit: cover;
                     }
                     #html5-qrcode-scanner-modal__dashboard_section {
@@ -1299,6 +1301,25 @@ export default function ToGoPage() {
                   }}>
                     📏 ~20 cm avstånd
                   </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setCameraActive(true)}
+                      style={{
+                        width: "100%",
+                        padding: "20px",
+                        background: "#E4002B",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 6,
+                        fontSize: "1em",
+                        fontWeight: 600,
+                        cursor: "pointer"
+                      }}
+                    >
+                      📷 Starta kamera
+                    </button>
+                  )}
                 </div>
               )}
 
