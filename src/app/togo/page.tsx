@@ -325,49 +325,72 @@ export default function ToGoPage() {
           aspectRatio: 1.5,
         };
 
-        // Kamera-constraints med autofokus för bättre streckkodsskanning
-        // @ts-ignore - focusMode och advanced stöds av de flesta mobiler men finns inte i alla TS-typer
-        const cameraConstraints: MediaTrackConstraints = {
-          facingMode: "environment",
-          // @ts-ignore
-          focusMode: "continuous",
-          // @ts-ignore
-          advanced: [{ focusMode: "continuous" }]
+        // Callback för lyckad skanning
+        const onScanSuccess = (decodedText: string) => {
+          if (!isActive) return;
+          
+          const ean = cleanEan(decodedText);
+          const now = Date.now();
+          
+          // Undvik dubbelskanning av samma kod inom 2 sekunder
+          if (ean && (ean !== lastScannedRef.current || now - lastScannedTimeRef.current > 2000)) {
+            lastScannedRef.current = ean;
+            lastScannedTimeRef.current = now;
+            
+            console.log("Skannade streckkod:", ean);
+            
+            // Vibrera om möjligt för feedback
+            if (navigator.vibrate) navigator.vibrate(100);
+            
+            // Använd ref för att undvika stale closure
+            if (handleScanRef.current) {
+              handleScanRef.current(ean);
+            }
+          }
         };
 
-        await html5QrCode.start(
-          cameraConstraints as any, // Bakre kamera med autofokus
-          config,
-          (decodedText) => {
-            if (!isActive) return;
-            
-            const ean = cleanEan(decodedText);
-            const now = Date.now();
-            
-            // Undvik dubbelskanning av samma kod inom 2 sekunder
-            if (ean && (ean !== lastScannedRef.current || now - lastScannedTimeRef.current > 2000)) {
-              lastScannedRef.current = ean;
-              lastScannedTimeRef.current = now;
-              
-              console.log("Skannade streckkod:", ean);
-              
-              // Vibrera om möjligt för feedback
-              if (navigator.vibrate) navigator.vibrate(100);
-              
-              // Använd ref för att undvika stale closure
-              if (handleScanRef.current) {
-                handleScanRef.current(ean);
-              }
-            }
-          },
-          (errorMessage) => {
-            // Ignorera - inget hittat i denna frame
-          }
-        );
+        const onScanError = () => {
+          // Ignorera - inget hittat i denna frame
+        };
+
+        // Försök först med autofokus-constraints, fallback till enklare om det misslyckas
+        let started = false;
+        
+        // Försök 1: Med autofokus
+        try {
+          // @ts-ignore - focusMode stöds av de flesta mobiler men finns inte i alla TS-typer
+          const cameraConstraintsWithFocus: MediaTrackConstraints = {
+            facingMode: "environment",
+            // @ts-ignore
+            focusMode: "continuous"
+          };
+          
+          await html5QrCode.start(
+            cameraConstraintsWithFocus as any,
+            config,
+            onScanSuccess,
+            onScanError
+          );
+          started = true;
+          console.log("Kamera startad med autofokus-constraints");
+        } catch (focusErr) {
+          console.log("Kunde inte starta med autofokus, försöker utan:", focusErr);
+        }
+        
+        // Försök 2: Utan autofokus (fallback)
+        if (!started) {
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            onScanError
+          );
+          console.log("Kamera startad utan autofokus-constraints");
+        }
         
         console.log("html5-qrcode skanning startad!");
         
-        // Försök aktivera autofokus via video-tracken (fallback för enheter som inte stödjer constraints)
+        // Försök aktivera autofokus via video-tracken efter start (fungerar på fler enheter)
         try {
           const videoElement = document.querySelector('#reader video') as HTMLVideoElement;
           if (videoElement && videoElement.srcObject) {
