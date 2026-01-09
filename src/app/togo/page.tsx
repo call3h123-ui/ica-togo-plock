@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
@@ -497,27 +497,25 @@ export default function ToGoPage() {
     };
   }, [cameraActive, selectedCameraId]);
 
-  // När modal öppnas/stängs, starta om kameran om den är aktiv
-  useEffect(() => {
-    if (cameraActive && scannerMode === 'camera') {
-      // Stoppa befintlig kamera och starta om för att byta till rätt DOM-element
-      const restartCamera = async () => {
-        if (html5QrCodeRef.current) {
-          try {
-            await html5QrCodeRef.current.stop();
-          } catch (e) {
-            console.log("Stop error vid modal-byte:", e);
-          }
-          html5QrCodeRef.current = null;
-        }
-        // Trigga omstart genom att sätta cameraActive false/true
-        setCameraActive(false);
-        setTimeout(() => setCameraActive(true), 100);
-      };
-      restartCamera();
+  // Säker funktion för att starta om kameran
+  const restartCamera = useCallback(async () => {
+    console.log("restartCamera called");
+    // Stoppa befintlig kamera först
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        console.log("Kamera stoppad");
+      } catch (e) {
+        console.log("Stop error:", e);
+      }
+      html5QrCodeRef.current = null;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modalOpen]);
+    // Vänta lite och starta om
+    setCameraActive(false);
+    await new Promise(resolve => setTimeout(resolve, 200));
+    setCameraActive(true);
+    console.log("Kamera omstartad");
+  }, []);
 
   // Stoppa kamera när man byter läge från kamera
   useEffect(() => {
@@ -1730,11 +1728,7 @@ export default function ToGoPage() {
             {/* Knapp för att skanna ny artikel med kamera */}
             {scannerMode === 'camera' && (
               <button
-                onClick={() => {
-                  // Starta om kameran för att skanna ny artikel
-                  setCameraActive(false);
-                  setTimeout(() => setCameraActive(true), 100);
-                }}
+                onClick={restartCamera}
                 style={{ 
                   padding: 14, 
                   width: "100%", 
