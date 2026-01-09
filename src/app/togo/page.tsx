@@ -278,79 +278,25 @@ export default function ToGoPage() {
   const lastScannedRef = useRef<string>("");
   const lastScannedTimeRef = useRef<number>(0);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const [torchOn, setTorchOn] = useState(false);
 
-  // Tap-to-focus: Fokusera kameran när användaren trycker på skärmen
-  async function handleTapToFocus() {
+  // Slå på/av ficklampa (torch) - hjälper med läsbarhet
+  async function toggleTorch() {
     try {
-      // Hitta video-elementet
       const videoElement = document.querySelector('#html5-qrcode-scanner video, #html5-qrcode-scanner-modal video') as HTMLVideoElement;
-      if (!videoElement || !videoElement.srcObject) {
-        console.log("Tap-to-focus: Ingen video hittad");
-        return;
-      }
+      if (!videoElement || !videoElement.srcObject) return;
       
       const stream = videoElement.srcObject as MediaStream;
       const track = stream.getVideoTracks()[0];
-      if (!track) {
-        console.log("Tap-to-focus: Ingen video-track hittad");
-        return;
-      }
-
-      // Vibrera för feedback
+      if (!track) return;
+      
+      const newTorchState = !torchOn;
+      // @ts-ignore - torch stöds av de flesta mobiler
+      await track.applyConstraints({ advanced: [{ torch: newTorchState }] });
+      setTorchOn(newTorchState);
       if (navigator.vibrate) navigator.vibrate(50);
-      
-      // Metod 1: Försök med ImageCapture API (bäst stöd på Android)
-      // @ts-ignore - ImageCapture finns på de flesta mobiler
-      if (typeof ImageCapture !== 'undefined') {
-        try {
-          // @ts-ignore
-          const imageCapture = new ImageCapture(track);
-          const photoCapabilities = await imageCapture.getPhotoCapabilities?.();
-          
-          // @ts-ignore
-          if (photoCapabilities?.focusMode?.includes('single-shot') || photoCapabilities?.focusMode?.includes('manual')) {
-            // Ta en "fokus-bild" för att trigga autofokus
-            await imageCapture.takePhoto({ 
-              // @ts-ignore
-              focusMode: 'single-shot' 
-            }).catch(() => {});
-            console.log("Tap-to-focus: Triggade fokus via ImageCapture");
-            return;
-          }
-        } catch (e) {
-          console.log("ImageCapture fokus misslyckades:", e);
-        }
-      }
-      
-      // Metod 2: Försök via track constraints
-      const capabilities = track.getCapabilities?.();
-      // @ts-ignore
-      const supportedFocusModes = capabilities?.focusMode || [];
-      console.log("Tap-to-focus: Tillgängliga fokuslägen:", supportedFocusModes);
-      
-      if (supportedFocusModes.includes('single-shot')) {
-        // @ts-ignore
-        await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
-        console.log("Tap-to-focus: single-shot aktiverat");
-      } else if (supportedFocusModes.includes('manual')) {
-        // @ts-ignore
-        await track.applyConstraints({ advanced: [{ focusMode: 'manual' }] });
-        // Vänta och återställ till continuous
-        setTimeout(async () => {
-          try {
-            if (supportedFocusModes.includes('continuous')) {
-              // @ts-ignore
-              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-            }
-          } catch (e) {}
-        }, 500);
-        console.log("Tap-to-focus: manual->continuous triggat");
-      } else {
-        console.log("Tap-to-focus: Inga fokuslägen stöds");
-      }
-      
     } catch (err) {
-      console.log("Tap-to-focus fel:", err);
+      console.log("Torch fel:", err);
     }
   }
 
@@ -970,29 +916,34 @@ export default function ToGoPage() {
           <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
             <div 
               id="html5-qrcode-scanner"
-              onClick={handleTapToFocus}
               style={{
                 width: "100%",
                 borderRadius: 8,
                 border: "3px solid #E4002B",
-                overflow: "hidden",
-                cursor: "pointer"
+                overflow: "hidden"
               }}
             />
-            <div style={{
-              position: "absolute",
-              bottom: 50,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(0,0,0,0.6)",
-              color: "white",
-              padding: "6px 12px",
-              borderRadius: 6,
-              fontSize: "0.8em",
-              pointerEvents: "none"
-            }}>
-              👆 Tryck för att fokusera
-            </div>
+            {/* Ficklampsknapp */}
+            <button
+              onClick={toggleTorch}
+              style={{
+                position: "absolute",
+                bottom: 50,
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: torchOn ? "#FFD700" : "rgba(0,0,0,0.6)",
+                color: torchOn ? "#000" : "white",
+                padding: "10px 20px",
+                borderRadius: 8,
+                fontSize: "1em",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 600,
+                zIndex: 10
+              }}
+            >
+              {torchOn ? "🔦 Lampa PÅ" : "💡 Tänd lampa"}
+            </button>
             <style>{`
               #html5-qrcode-scanner video {
                 border-radius: 8px;
@@ -1272,14 +1223,12 @@ export default function ToGoPage() {
                 <div style={{ position: "relative", width: "100%" }}>
                   <div 
                     id="html5-qrcode-scanner-modal"
-                    onClick={handleTapToFocus}
                     style={{
                       width: "100%",
                       maxHeight: 200,
                       borderRadius: 6,
                       border: "2px solid #E4002B",
-                      overflow: "hidden",
-                      cursor: "pointer"
+                      overflow: "hidden"
                     }}
                   />
                   <style>{`
@@ -1291,21 +1240,27 @@ export default function ToGoPage() {
                       display: none !important;
                     }
                   `}</style>
-                  <div style={{
-                    position: "absolute",
-                    bottom: 4,
-                    left: 4,
-                    right: 4,
-                    padding: "4px",
-                    background: "rgba(0,0,0,0.6)",
-                    color: "white",
-                    borderRadius: 4,
-                    textAlign: "center",
-                    fontSize: "0.75em",
-                    zIndex: 10
-                  }}>
-                    👆 Tryck för att fokusera
-                  </div>
+                  {/* Ficklampsknapp i modal */}
+                  <button
+                    onClick={toggleTorch}
+                    style={{
+                      position: "absolute",
+                      bottom: 8,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: torchOn ? "#FFD700" : "rgba(0,0,0,0.7)",
+                      color: torchOn ? "#000" : "white",
+                      padding: "6px 14px",
+                      borderRadius: 6,
+                      fontSize: "0.8em",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      zIndex: 10
+                    }}
+                  >
+                    {torchOn ? "🔦 PÅ" : "💡 Lampa"}
+                  </button>
                 </div>
               )}
 
