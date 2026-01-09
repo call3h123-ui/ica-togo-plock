@@ -295,41 +295,59 @@ export default function ToGoPage() {
         console.log("Tap-to-focus: Ingen video-track hittad");
         return;
       }
+
+      // Vibrera för feedback
+      if (navigator.vibrate) navigator.vibrate(50);
       
+      // Metod 1: Försök med ImageCapture API (bäst stöd på Android)
+      // @ts-ignore - ImageCapture finns på de flesta mobiler
+      if (typeof ImageCapture !== 'undefined') {
+        try {
+          // @ts-ignore
+          const imageCapture = new ImageCapture(track);
+          const photoCapabilities = await imageCapture.getPhotoCapabilities?.();
+          
+          // @ts-ignore
+          if (photoCapabilities?.focusMode?.includes('single-shot') || photoCapabilities?.focusMode?.includes('manual')) {
+            // Ta en "fokus-bild" för att trigga autofokus
+            await imageCapture.takePhoto({ 
+              // @ts-ignore
+              focusMode: 'single-shot' 
+            }).catch(() => {});
+            console.log("Tap-to-focus: Triggade fokus via ImageCapture");
+            return;
+          }
+        } catch (e) {
+          console.log("ImageCapture fokus misslyckades:", e);
+        }
+      }
+      
+      // Metod 2: Försök via track constraints
       const capabilities = track.getCapabilities?.();
       // @ts-ignore
       const supportedFocusModes = capabilities?.focusMode || [];
+      console.log("Tap-to-focus: Tillgängliga fokuslägen:", supportedFocusModes);
       
-      // Försök sätta fokusläge till 'manual' först för att trigga omfokusering, sedan tillbaka till continuous
-      // @ts-ignore
-      if (supportedFocusModes.includes('manual')) {
+      if (supportedFocusModes.includes('single-shot')) {
+        // @ts-ignore
+        await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+        console.log("Tap-to-focus: single-shot aktiverat");
+      } else if (supportedFocusModes.includes('manual')) {
         // @ts-ignore
         await track.applyConstraints({ advanced: [{ focusMode: 'manual' }] });
-        console.log("Tap-to-focus: Satt till manual");
-        
-        // Vänta lite och sätt tillbaka till continuous för att trigga autofokus
+        // Vänta och återställ till continuous
         setTimeout(async () => {
           try {
-            // @ts-ignore
             if (supportedFocusModes.includes('continuous')) {
               // @ts-ignore
               await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-              console.log("Tap-to-focus: Återställt till continuous");
             }
-          } catch (e) {
-            console.log("Tap-to-focus: Kunde inte återställa till continuous", e);
-          }
-        }, 300);
-      } else if (supportedFocusModes.includes('single-shot')) {
-        // @ts-ignore
-        await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
-        console.log("Tap-to-focus: Triggar single-shot fokus");
+          } catch (e) {}
+        }, 500);
+        console.log("Tap-to-focus: manual->continuous triggat");
       } else {
-        console.log("Tap-to-focus: Ingen fokusering stöds. Tillgängliga lägen:", supportedFocusModes);
+        console.log("Tap-to-focus: Inga fokuslägen stöds");
       }
-      
-      // Vibrera för feedback
-      if (navigator.vibrate) navigator.vibrate(50);
       
     } catch (err) {
       console.log("Tap-to-focus fel:", err);
@@ -410,9 +428,16 @@ export default function ToGoPage() {
           // Ignorera - inget hittat i denna frame
         };
 
-        // Starta kamera med enkla constraints (fungerar på alla enheter)
+        // Kamera-constraints med hög upplösning för bättre skanning
+        const cameraConstraints = {
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        };
+
+        // Starta kamera
         await html5QrCode.start(
-          { facingMode: "environment" },
+          cameraConstraints,
           config,
           onScanSuccess,
           onScanError
@@ -423,12 +448,13 @@ export default function ToGoPage() {
         // Försök aktivera autofokus via video-tracken efter start
         setTimeout(async () => {
           try {
-            const videoElement = document.querySelector('#reader video') as HTMLVideoElement;
+            const videoElement = document.querySelector(`#${scannerId} video`) as HTMLVideoElement;
             if (videoElement && videoElement.srcObject) {
               const stream = videoElement.srcObject as MediaStream;
               const track = stream.getVideoTracks()[0];
               if (track) {
                 const capabilities = track.getCapabilities?.();
+                console.log("Kamera capabilities:", capabilities);
                 // @ts-ignore - focusMode finns på de flesta mobiler
                 if (capabilities?.focusMode?.includes('continuous')) {
                   // @ts-ignore
