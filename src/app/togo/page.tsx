@@ -325,8 +325,18 @@ export default function ToGoPage() {
           aspectRatio: 1.5,
         };
 
+        // Kamera-constraints med autofokus för bättre streckkodsskanning
+        // @ts-ignore - focusMode och advanced stöds av de flesta mobiler men finns inte i alla TS-typer
+        const cameraConstraints: MediaTrackConstraints = {
+          facingMode: "environment",
+          // @ts-ignore
+          focusMode: "continuous",
+          // @ts-ignore
+          advanced: [{ focusMode: "continuous" }]
+        };
+
         await html5QrCode.start(
-          { facingMode: "environment" }, // Bakre kamera
+          cameraConstraints as any, // Bakre kamera med autofokus
           config,
           (decodedText) => {
             if (!isActive) return;
@@ -356,6 +366,26 @@ export default function ToGoPage() {
         );
         
         console.log("html5-qrcode skanning startad!");
+        
+        // Försök aktivera autofokus via video-tracken (fallback för enheter som inte stödjer constraints)
+        try {
+          const videoElement = document.querySelector('#reader video') as HTMLVideoElement;
+          if (videoElement && videoElement.srcObject) {
+            const stream = videoElement.srcObject as MediaStream;
+            const track = stream.getVideoTracks()[0];
+            if (track) {
+              const capabilities = track.getCapabilities?.();
+              // @ts-ignore - focusMode finns på de flesta mobiler
+              if (capabilities?.focusMode?.includes('continuous')) {
+                // @ts-ignore
+                await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                console.log("Autofokus aktiverat via track constraints");
+              }
+            }
+          }
+        } catch (focusErr) {
+          console.log("Kunde inte aktivera autofokus via track:", focusErr);
+        }
         
       } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
@@ -409,12 +439,34 @@ export default function ToGoPage() {
   // Start camera for image capture when cameraForImage is true
   useEffect(() => {
     if (cameraForImage && imageCameraRef.current) {
+      // Kamera-constraints med autofokus
+      const videoConstraints: MediaTrackConstraints = {
+        facingMode: "environment",
+        // @ts-ignore - focusMode stöds av de flesta mobiler men finns inte i TS-typer
+        focusMode: "continuous"
+      };
       navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
+        .getUserMedia({ video: videoConstraints })
+        .then(async (stream) => {
           if (imageCameraRef.current) {
             imageCameraRef.current.srcObject = stream;
             imageCameraStreamRef.current = stream;
+            
+            // Försök aktivera autofokus via track (fallback)
+            try {
+              const track = stream.getVideoTracks()[0];
+              if (track) {
+                const capabilities = track.getCapabilities?.();
+                // @ts-ignore
+                if (capabilities?.focusMode?.includes('continuous')) {
+                  // @ts-ignore
+                  await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                  console.log("Bildkamera: autofokus aktiverat");
+                }
+              }
+            } catch (e) {
+              console.log("Bildkamera: kunde inte aktivera autofokus via track");
+            }
           }
         })
         .catch((err) => {
@@ -496,9 +548,10 @@ export default function ToGoPage() {
         }, 100);
 
         // Försök hämta produktinfo från extern API (Open Food Facts)
+        // OBS: Bild hämtas ENDAST från ICA assets, inte från Open Food Facts
         setLoadingProduct(true);
         try {
-          // Set image from ICA assets
+          // Set image from ICA assets (används alltid för bilder)
           setNewImage(getIcaImageUrl(ean));
           
           const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
@@ -506,6 +559,8 @@ export default function ToGoPage() {
             const data = await response.json();
             if (data.product) {
               const prod = data.product;
+              // Hämta endast metadata från OFF: namn, varumärke, vikt
+              // Bild kommer alltid från ICA assets
               setNewName(prod.product_name || prod.name || "");
               setNewBrand(prod.brands || "");
               // fetch weight/quantity if available
