@@ -279,6 +279,30 @@ export default function ToGoPage() {
   const lastScannedTimeRef = useRef<number>(0);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const [torchOn, setTorchOn] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<{id: string, label: string}[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedCameraId") || "";
+    }
+    return "";
+  });
+
+  // Hämta tillgängliga kameror
+  useEffect(() => {
+    Html5Qrcode.getCameras().then(cameras => {
+      console.log("Tillgängliga kameror:", cameras);
+      setAvailableCameras(cameras);
+      // Om ingen kamera är vald, välj första "back" kameran eller första kameran
+      if (!selectedCameraId && cameras.length > 0) {
+        const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.includes('0'));
+        const cameraToUse = backCamera || cameras[0];
+        setSelectedCameraId(cameraToUse.id);
+        localStorage.setItem("selectedCameraId", cameraToUse.id);
+      }
+    }).catch(err => {
+      console.log("Kunde inte hämta kameror:", err);
+    });
+  }, []);
 
   // Slå på/av ficklampa (torch) - hjälper med läsbarhet
   async function toggleTorch() {
@@ -389,16 +413,19 @@ export default function ToGoPage() {
           // Ignorera - inget hittat i denna frame
         };
 
-        // Kamera-constraints med hög upplösning för bättre avläsning av små koder
-        const cameraConfig = {
-          facingMode: "environment",
-          width: { min: 640, ideal: 1920, max: 1920 },
-          height: { min: 480, ideal: 1080, max: 1080 }
-        };
+        // Använd specifikt kamera-ID om det finns, annars fallback till facingMode
+        let cameraIdOrConfig: string | object;
+        if (selectedCameraId) {
+          cameraIdOrConfig = selectedCameraId;
+          console.log("Använder specifik kamera:", selectedCameraId);
+        } else {
+          cameraIdOrConfig = { facingMode: "environment" };
+          console.log("Använder facingMode: environment");
+        }
 
         // Starta kamera
         await html5QrCode.start(
-          cameraConfig,
+          cameraIdOrConfig,
           config,
           onScanSuccess,
           onScanError
@@ -449,7 +476,7 @@ export default function ToGoPage() {
         html5QrCodeRef.current = null;
       }
     };
-  }, [cameraActive, modalOpen]);
+  }, [cameraActive, modalOpen, selectedCameraId]);
 
   // Stoppa kamera när man byter läge från kamera
   useEffect(() => {
@@ -918,6 +945,37 @@ export default function ToGoPage() {
 
       <div style={{ display: modalOpen ? "none" : "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", background: "#f9f9f9", padding: "clamp(12px, 3vw, 16px)", borderRadius: 12, marginBottom: "clamp(16px, 4vw, 24px)", position: "relative", zIndex: 100 }}>
         
+        {/* Kameraväljare om flera kameror finns */}
+        {scannerMode === 'camera' && availableCameras.length > 1 && (
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: "0.85em", color: "#666", marginRight: 8 }}>📷 Kamera:</label>
+            <select 
+              value={selectedCameraId}
+              onChange={(e) => {
+                setSelectedCameraId(e.target.value);
+                localStorage.setItem("selectedCameraId", e.target.value);
+                // Starta om kameran med ny kamera
+                if (cameraActive) {
+                  setCameraActive(false);
+                  setTimeout(() => setCameraActive(true), 100);
+                }
+              }}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "1px solid #ccc",
+                fontSize: "0.85em"
+              }}
+            >
+              {availableCameras.map(cam => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.label || cam.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Kamera-vy om kameraläge är aktivt - använder html5-qrcode */}
         {scannerMode === 'camera' && cameraActive && (
           <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
@@ -930,22 +988,6 @@ export default function ToGoPage() {
                 overflow: "hidden"
               }}
             />
-            {/* Instruktion om avstånd */}
-            <div style={{
-              position: "absolute",
-              bottom: 8,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(0,0,0,0.7)",
-              color: "white",
-              padding: "8px 16px",
-              borderRadius: 8,
-              fontSize: "0.9em",
-              textAlign: "center",
-              zIndex: 10
-            }}>
-              📏 Håll ~20 cm avstånd
-            </div>
             <style>{`
               #html5-qrcode-scanner video {
                 border-radius: 8px;
