@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+  // Felmeddelande för kamera
+  const [cameraError, setCameraError] = useState<string | null>(null);
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
@@ -253,6 +255,7 @@ export default function ToGoPage() {
   }
 
   useEffect(() => {
+    setCameraError(null); // Nollställ fel varje gång vi försöker starta kameran
     // Read storeId from localStorage
     if (typeof window !== "undefined") {
       const savedStoreId = localStorage.getItem("storeId");
@@ -523,7 +526,7 @@ export default function ToGoPage() {
       } catch (err) {
         console.error("Kunde inte starta kameraskanning:", err);
         if (isActive) {
-          alert("Kunde inte starta kameran. Kontrollera att du gett tillåtelse och att sidan använder HTTPS.");
+          setCameraError("Kunde inte starta kameran. Kontrollera att du gett tillåtelse och att sidan använder HTTPS. Om du har flera kameror, testa att byta kamera i inställningarna.");
           setCameraActive(false);
         }
       }
@@ -1399,6 +1402,20 @@ export default function ToGoPage() {
                       }}>
                         📏 ~20 cm avstånd
                       </div>
+                      {cameraError && (
+                        <div style={{
+                          background: '#fff3cd',
+                          border: '1px solid #ffc107',
+                          color: '#856404',
+                          padding: '12px 16px',
+                          borderRadius: 8,
+                          marginTop: 16,
+                          fontSize: '0.95em',
+                          fontWeight: 500
+                        }}>
+                          {cameraError}
+                        </div>
+                      )}
                     </>
                   )}
                   {!cameraActive && (
