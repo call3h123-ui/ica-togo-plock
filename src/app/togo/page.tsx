@@ -292,15 +292,34 @@ export default function ToGoPage() {
     Html5Qrcode.getCameras().then(cameras => {
       console.log("Tillgängliga kameror:", cameras);
       setAvailableCameras(cameras);
-      // Om ingen kamera är vald, välj första "back" kameran eller första kameran
-      if (!selectedCameraId && cameras.length > 0) {
-        const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.includes('0'));
+      
+      // Kontrollera om sparad kamera finns i listan
+      const savedCameraExists = selectedCameraId && cameras.some(c => c.id === selectedCameraId);
+      
+      if (!savedCameraExists && cameras.length > 0) {
+        // Sparad kamera finns inte - välj ny automatiskt
+        // Prioritera "back" eller "environment" kamera
+        const backCamera = cameras.find(c => 
+          c.label.toLowerCase().includes('back') || 
+          c.label.toLowerCase().includes('rear') ||
+          c.label.toLowerCase().includes('environment') ||
+          c.label.includes('0')
+        );
         const cameraToUse = backCamera || cameras[0];
+        console.log("Väljer kamera automatiskt:", cameraToUse.label);
         setSelectedCameraId(cameraToUse.id);
         localStorage.setItem("selectedCameraId", cameraToUse.id);
+      } else if (!selectedCameraId && cameras.length === 0) {
+        // Inga kameror hittades - nollställ för facingMode fallback
+        console.log("Inga kameror hittades, använder facingMode fallback");
+        setSelectedCameraId("");
+        localStorage.removeItem("selectedCameraId");
       }
     }).catch(err => {
       console.log("Kunde inte hämta kameror:", err);
+      // Vid fel, nollställ för facingMode fallback
+      setSelectedCameraId("");
+      localStorage.removeItem("selectedCameraId");
     });
   }, []);
 
@@ -476,7 +495,29 @@ export default function ToGoPage() {
         html5QrCodeRef.current = null;
       }
     };
-  }, [cameraActive, modalOpen, selectedCameraId]);
+  }, [cameraActive, selectedCameraId]);
+
+  // När modal öppnas/stängs, starta om kameran om den är aktiv
+  useEffect(() => {
+    if (cameraActive && scannerMode === 'camera') {
+      // Stoppa befintlig kamera och starta om för att byta till rätt DOM-element
+      const restartCamera = async () => {
+        if (html5QrCodeRef.current) {
+          try {
+            await html5QrCodeRef.current.stop();
+          } catch (e) {
+            console.log("Stop error vid modal-byte:", e);
+          }
+          html5QrCodeRef.current = null;
+        }
+        // Trigga omstart genom att sätta cameraActive false/true
+        setCameraActive(false);
+        setTimeout(() => setCameraActive(true), 100);
+      };
+      restartCamera();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalOpen]);
 
   // Stoppa kamera när man byter läge från kamera
   useEffect(() => {
