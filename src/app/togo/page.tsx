@@ -279,6 +279,63 @@ export default function ToGoPage() {
   const lastScannedTimeRef = useRef<number>(0);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
+  // Tap-to-focus: Fokusera kameran när användaren trycker på skärmen
+  async function handleTapToFocus() {
+    try {
+      // Hitta video-elementet
+      const videoElement = document.querySelector('#html5-qrcode-scanner video, #html5-qrcode-scanner-modal video') as HTMLVideoElement;
+      if (!videoElement || !videoElement.srcObject) {
+        console.log("Tap-to-focus: Ingen video hittad");
+        return;
+      }
+      
+      const stream = videoElement.srcObject as MediaStream;
+      const track = stream.getVideoTracks()[0];
+      if (!track) {
+        console.log("Tap-to-focus: Ingen video-track hittad");
+        return;
+      }
+      
+      const capabilities = track.getCapabilities?.();
+      // @ts-ignore
+      const supportedFocusModes = capabilities?.focusMode || [];
+      
+      // Försök sätta fokusläge till 'manual' först för att trigga omfokusering, sedan tillbaka till continuous
+      // @ts-ignore
+      if (supportedFocusModes.includes('manual')) {
+        // @ts-ignore
+        await track.applyConstraints({ advanced: [{ focusMode: 'manual' }] });
+        console.log("Tap-to-focus: Satt till manual");
+        
+        // Vänta lite och sätt tillbaka till continuous för att trigga autofokus
+        setTimeout(async () => {
+          try {
+            // @ts-ignore
+            if (supportedFocusModes.includes('continuous')) {
+              // @ts-ignore
+              await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+              console.log("Tap-to-focus: Återställt till continuous");
+            }
+          } catch (e) {
+            console.log("Tap-to-focus: Kunde inte återställa till continuous", e);
+          }
+        }, 300);
+      } else if (supportedFocusModes.includes('single-shot')) {
+        // @ts-ignore
+        await track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+        console.log("Tap-to-focus: Triggar single-shot fokus");
+      } else {
+        console.log("Tap-to-focus: Ingen fokusering stöds. Tillgängliga lägen:", supportedFocusModes);
+      }
+      
+      // Vibrera för feedback
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+    } catch (err) {
+      console.log("Tap-to-focus fel:", err);
+    }
+  }
+
   // Start/stop camera barcode scanning med html5-qrcode
   useEffect(() => {
     let isActive = true;
@@ -878,13 +935,29 @@ export default function ToGoPage() {
           <div style={{ position: "relative", width: "100%", maxWidth: 400, margin: "0 auto" }}>
             <div 
               id="html5-qrcode-scanner"
+              onClick={handleTapToFocus}
               style={{
                 width: "100%",
                 borderRadius: 8,
                 border: "3px solid #E4002B",
-                overflow: "hidden"
+                overflow: "hidden",
+                cursor: "pointer"
               }}
             />
+            <div style={{
+              position: "absolute",
+              bottom: 50,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(0,0,0,0.6)",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: 6,
+              fontSize: "0.8em",
+              pointerEvents: "none"
+            }}>
+              👆 Tryck för att fokusera
+            </div>
             <style>{`
               #html5-qrcode-scanner video {
                 border-radius: 8px;
@@ -1164,12 +1237,14 @@ export default function ToGoPage() {
                 <div style={{ position: "relative", width: "100%" }}>
                   <div 
                     id="html5-qrcode-scanner-modal"
+                    onClick={handleTapToFocus}
                     style={{
                       width: "100%",
                       maxHeight: 200,
                       borderRadius: 6,
                       border: "2px solid #E4002B",
-                      overflow: "hidden"
+                      overflow: "hidden",
+                      cursor: "pointer"
                     }}
                   />
                   <style>{`
@@ -1194,7 +1269,7 @@ export default function ToGoPage() {
                     fontSize: "0.75em",
                     zIndex: 10
                   }}>
-                    Rikta mot streckkod
+                    👆 Tryck för att fokusera
                   </div>
                 </div>
               )}
