@@ -341,8 +341,8 @@ export default function ToGoPage() {
         html5QrCodeRef.current = html5QrCode;
 
         const config = {
-          fps: 10,
-          qrbox: { width: 250, height: 100 },
+          fps: 15,
+          qrbox: { width: 300, height: 150 },
           aspectRatio: 1.5,
         };
 
@@ -923,27 +923,22 @@ export default function ToGoPage() {
                 overflow: "hidden"
               }}
             />
-            {/* Ficklampsknapp */}
-            <button
-              onClick={toggleTorch}
-              style={{
-                position: "absolute",
-                bottom: 50,
-                left: "50%",
-                transform: "translateX(-50%)",
-                background: torchOn ? "#FFD700" : "rgba(0,0,0,0.6)",
-                color: torchOn ? "#000" : "white",
-                padding: "10px 20px",
-                borderRadius: 8,
-                fontSize: "1em",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 600,
-                zIndex: 10
-              }}
-            >
-              {torchOn ? "🔦 Lampa PÅ" : "💡 Tänd lampa"}
-            </button>
+            {/* Instruktion om avstånd */}
+            <div style={{
+              position: "absolute",
+              bottom: 8,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(0,0,0,0.7)",
+              color: "white",
+              padding: "8px 16px",
+              borderRadius: 8,
+              fontSize: "0.9em",
+              textAlign: "center",
+              zIndex: 10
+            }}>
+              📏 Håll ~20 cm avstånd
+            </div>
             <style>{`
               #html5-qrcode-scanner video {
                 border-radius: 8px;
@@ -1240,27 +1235,21 @@ export default function ToGoPage() {
                       display: none !important;
                     }
                   `}</style>
-                  {/* Ficklampsknapp i modal */}
-                  <button
-                    onClick={toggleTorch}
-                    style={{
-                      position: "absolute",
-                      bottom: 8,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background: torchOn ? "#FFD700" : "rgba(0,0,0,0.7)",
-                      color: torchOn ? "#000" : "white",
-                      padding: "6px 14px",
-                      borderRadius: 6,
-                      fontSize: "0.8em",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      zIndex: 10
-                    }}
-                  >
-                    {torchOn ? "🔦 PÅ" : "💡 Lampa"}
-                  </button>
+                  {/* Instruktion om avstånd */}
+                  <div style={{
+                    position: "absolute",
+                    bottom: 4,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "rgba(0,0,0,0.7)",
+                    color: "white",
+                    padding: "4px 10px",
+                    borderRadius: 4,
+                    fontSize: "0.75em",
+                    zIndex: 10
+                  }}>
+                    📏 ~20 cm avstånd
+                  </div>
                 </div>
               )}
 
