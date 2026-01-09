@@ -499,23 +499,28 @@ export default function ToGoPage() {
 
   // Säker funktion för att starta om kameran
   const restartCamera = useCallback(async () => {
-    console.log("restartCamera called");
+    console.log("restartCamera called, cameraActive:", cameraActive);
+    
     // Stoppa befintlig kamera först
     if (html5QrCodeRef.current) {
       try {
         await html5QrCodeRef.current.stop();
-        console.log("Kamera stoppad");
+        console.log("Kamera stoppad via html5QrCode.stop()");
       } catch (e) {
         console.log("Stop error:", e);
       }
       html5QrCodeRef.current = null;
     }
-    // Vänta lite och starta om
+    
+    // Stäng av kameran
     setCameraActive(false);
-    await new Promise(resolve => setTimeout(resolve, 200));
-    setCameraActive(true);
-    console.log("Kamera omstartad");
-  }, []);
+    
+    // Vänta så att React hinner uppdatera DOM
+    setTimeout(() => {
+      console.log("Startar kameran igen");
+      setCameraActive(true);
+    }, 400);
+  }, [cameraActive]);
 
   // Stoppa kamera när man byter läge från kamera
   useEffect(() => {
