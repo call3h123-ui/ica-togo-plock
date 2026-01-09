@@ -428,16 +428,9 @@ export default function ToGoPage() {
           // Ignorera - inget hittat i denna frame
         };
 
-        // Kamera-constraints med hög upplösning för bättre skanning
-        const cameraConstraints = {
-          facingMode: "environment",
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        };
-
-        // Starta kamera
+        // Starta kamera med enkla constraints (fungerar på alla enheter)
         await html5QrCode.start(
-          cameraConstraints,
+          { facingMode: "environment" },
           config,
           onScanSuccess,
           onScanError
@@ -445,7 +438,7 @@ export default function ToGoPage() {
         
         console.log("html5-qrcode skanning startad!");
         
-        // Försök aktivera autofokus via video-tracken efter start
+        // Försök höja upplösning och aktivera autofokus efter start
         setTimeout(async () => {
           try {
             const videoElement = document.querySelector(`#${scannerId} video`) as HTMLVideoElement;
@@ -455,6 +448,22 @@ export default function ToGoPage() {
               if (track) {
                 const capabilities = track.getCapabilities?.();
                 console.log("Kamera capabilities:", capabilities);
+                
+                // Försök höja upplösning om möjligt
+                try {
+                  // @ts-ignore
+                  const maxWidth = capabilities?.width?.max || 1280;
+                  // @ts-ignore
+                  const maxHeight = capabilities?.height?.max || 720;
+                  await track.applyConstraints({
+                    width: { ideal: Math.min(maxWidth, 1920) },
+                    height: { ideal: Math.min(maxHeight, 1080) }
+                  });
+                  console.log("Upplösning höjd");
+                } catch (e) {
+                  console.log("Kunde inte höja upplösning:", e);
+                }
+                
                 // @ts-ignore - focusMode finns på de flesta mobiler
                 if (capabilities?.focusMode?.includes('continuous')) {
                   // @ts-ignore
@@ -464,7 +473,7 @@ export default function ToGoPage() {
               }
             }
           } catch (focusErr) {
-            console.log("Kunde inte aktivera autofokus:", focusErr);
+            console.log("Kunde inte konfigurera kamera:", focusErr);
           }
         }, 500);
         
