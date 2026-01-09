@@ -520,11 +520,11 @@ export default function ToGoPage() {
         return;
       }
 
-      // Product exists - check if already in order
-      const existingOrder = rows.find(r => r.ean === ean && r.qty > 0);
+      // Product exists - check if already in order AND NOT picked
+      const existingOrder = rows.find(r => r.ean === ean && r.qty > 0 && !r.is_picked);
       
       if (existingOrder) {
-        // Vara redan i orderlistan - visa banner och fyll in med befintlig data
+        // Vara redan i orderlistan (ej plockat) - visa banner och fyll in med befintlig data
         console.log("handleScanSubmit -> product already in order, showing banner");
         setAlreadyExistsBanner(true);
         setTimeout(() => setAlreadyExistsBanner(false), 4000);
@@ -539,7 +539,7 @@ export default function ToGoPage() {
         setNewCat(existingOrder.category_id);
         setNewQty(existingOrder.qty); // Använd befintlig mängd
       } else {
-        // Ny vara - normalt flöde
+        // Ny vara (eller plockat vara) - normalt flöde med kvantitet 1
         console.log("handleScanSubmit -> product exists, opening modal with existing product");
         setModalOpen(true);
         setExpandedEditFields(false);
