@@ -256,6 +256,16 @@ export default function ToGoPage() {
 
   useEffect(() => {
     setCameraError(null); // Nollställ fel varje gång vi försöker starta kameran
+    // Timeout: visa fel om ingen video syns inom 2 sekunder
+    let timeout: NodeJS.Timeout | null = null;
+    if (cameraActive) {
+      timeout = setTimeout(() => {
+        const video = document.querySelector('#html5-qrcode-scanner-modal video');
+        if (!video) {
+          setCameraError('Kunde inte starta kameran (ingen video hittades). Kontrollera behörigheter och försök igen.');
+        }
+      }, 2000);
+    }
     // Read storeId from localStorage
     if (typeof window !== "undefined") {
       const savedStoreId = localStorage.getItem("storeId");
@@ -536,6 +546,7 @@ export default function ToGoPage() {
 
     return () => {
       isActive = false;
+      if (timeout) clearTimeout(timeout);
       // Stoppa html5-qrcode
       if (html5QrCodeRef.current) {
         html5QrCodeRef.current.stop().catch(e => console.log("Stop error:", e));
