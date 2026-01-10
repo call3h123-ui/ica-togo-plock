@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown } from "@/lib/data";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { getProxiedImageUrl } from "@/lib/imageProxy";
+import { getProxiedImageUrl, getSafeImageUrl } from "@/lib/imageProxy";
 import * as XLSX from "xlsx";
 
 function cleanEan(raw: string) {
@@ -2239,7 +2239,7 @@ function RowCard({ row, categories, storeId, onChanged }: { row: OrderRow; categ
     <div style={{ border: "2px solid #e5e5e5", borderRadius: 12, padding: "clamp(12px, 3vw, 16px)", display: "flex", gap: "clamp(12px, 3vw, 16px)", alignItems: "center", background: "#fafafa", transition: "all 0.2s", flexWrap: "wrap" }}>
       {row.product?.image_url && (
         <img 
-          src={row.product.image_url} 
+          src={getSafeImageUrl(row.product.image_url) || ''} 
           alt="Produktbild" 
           style={{ width: "80px", height: "100px", objectFit: "cover", borderRadius: 8, pointerEvents: "none", userSelect: "none" }}
           draggable={false}

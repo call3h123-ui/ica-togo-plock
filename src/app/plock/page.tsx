@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { getCategories, getOrderRows, rpcClearPicked, rpcPicked } from "@/lib/data";
+import { getSafeImageUrl } from "@/lib/imageProxy";
 
 function generatePickListPDF(rows: OrderRow[], categories: Category[], fileName: string = "plocklista.html") {
   // Create minimal print-optimized HTML
@@ -61,7 +62,8 @@ function generatePickListPDF(rows: OrderRow[], categories: Category[], fileName:
     for (const r of items) {
       const brand = (r.product as any)?.brand ? ` - ${(r.product as any).brand}` : "";
       const weight = (r.product as any)?.weight ? ` [${(r.product as any).weight}]` : "";
-      const imgHtml = r.product?.image_url ? `<div class="img"><img src="${r.product.image_url}" alt="Produktbild" loading="lazy" /></div>` : '<div class="img"></div>';
+      const safeImageUrl = getSafeImageUrl(r.product?.image_url);
+      const imgHtml = safeImageUrl ? `<div class="img"><img src="${safeImageUrl}" alt="Produktbild" loading="lazy" /></div>` : '<div class="img"></div>';
       html2 += `
         <div class="item">
           ${imgHtml}
@@ -494,7 +496,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
         {(row.product as any)?.image_url && (
           <div style={{ flexShrink: 0 }}>
             <img 
-              src={(row.product as any).image_url} 
+              src={getSafeImageUrl((row.product as any).image_url) || ''} 
               alt={row.product?.name}
               style={{ width: "50px", height: "65px", objectFit: "contain", borderRadius: 4, background: "white", cursor: "pointer", transition: "all 0.2s", userSelect: "none" }}
               draggable={false}
@@ -502,7 +504,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                setExpandedImage(row.product?.image_url || null);
+                setExpandedImage(getSafeImageUrl(row.product?.image_url) || null);
               }}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
@@ -564,7 +566,7 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={(row.product as any).image_url}
+              src={getSafeImageUrl((row.product as any).image_url) || ''}
               alt={row.product?.name}
               style={{
                 maxWidth: "100%",
