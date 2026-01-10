@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown } from "@/lib/data";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 import * as XLSX from "xlsx";
 
 function cleanEan(raw: string) {
@@ -19,9 +20,8 @@ function padEan(ean: string): string {
 }
 
 function getIcaImageUrl(ean: string): string {
-  // Generate ICA asset image URL using EAN code
-  const paddedEan = padEan(ean);
-  return `https://assets.icanet.se/t_minbutik_preview,f_auto/${paddedEan}.jpg`;
+  // Generate proxied image URL that hides the EAN pattern
+  return getProxiedImageUrl(ean);
 }
 
 function compressImage(dataUrl: string, callback: (compressedDataUrl: string) => void) {
