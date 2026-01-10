@@ -101,7 +101,30 @@ function printPickList(rows: OrderRow[], categories: Category[]) {
   if (w) {
     w.document.write(html);
     w.document.close();
-    w.print();
+    
+    // Wait for all images to load before printing
+    const images = w.document.querySelectorAll('img');
+    if (images.length === 0) {
+      w.print();
+    } else {
+      let loadedCount = 0;
+      const onImageLoad = () => {
+        loadedCount++;
+        if (loadedCount >= images.length) {
+          w.print();
+        }
+      };
+      images.forEach((img) => {
+        if (img.complete) {
+          onImageLoad();
+        } else {
+          img.onload = onImageLoad;
+          img.onerror = onImageLoad; // Count errors too so we don't wait forever
+        }
+      });
+      // Fallback timeout in case some images take too long
+      setTimeout(() => w.print(), 3000);
+    }
   }
 }
 
