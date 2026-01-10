@@ -281,16 +281,19 @@ export default function PlockPage() {
           </div>
         ) : (
           <>
-            {[...todoGroups.entries()].map(([catId, items]) => (
-              <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)" }}>
-                <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", color: "#E4002B", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)} ({items.length})</h3>
-                <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
-                  {items.map((r) => (
-                    <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={recentlyPicked.has(r.ean)} />
-                  ))}
+            {categories
+              .map((cat) => [cat.id, todoGroups.get(cat.id)] as [string, OrderRow[] | undefined])
+              .filter(([, items]) => items && items.length > 0)
+              .map(([catId, items]) => (
+                <div key={catId} style={{ marginBottom: "clamp(16px, 3vw, 20px)" }}>
+                  <h3 style={{ marginBottom: "clamp(8px, 2vw, 10px)", color: "#E4002B", fontSize: "clamp(0.95em, 2vw, 1.1em)" }}>{catName(catId)} ({items!.length})</h3>
+                  <div style={{ display: "grid", gap: "clamp(8px, 2vw, 10px)" }}>
+                    {items!.map((r) => (
+                      <PlockRow key={r.id} row={r} onToggle={(v) => toggle(r.ean, v)} toned={recentlyPicked.has(r.ean)} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </>
         )}
       </div>
