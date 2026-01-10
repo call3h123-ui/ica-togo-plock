@@ -125,3 +125,38 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get("storeId");
+
+    if (!storeId) {
+      return NextResponse.json(
+        { message: "StoreID krävs" },
+        { status: 400 }
+      );
+    }
+
+    // Delete the store (cascade will delete categories, order_items due to FK constraints)
+    const { error } = await supabase
+      .from("stores")
+      .delete()
+      .eq("id", storeId);
+
+    if (error) {
+      console.error("Delete store error:", error);
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (err) {
+    console.error("Delete store error:", err);
+    return NextResponse.json(
+      { message: "Kunde inte radera butik" },
+      { status: 500 }
+    );
+  }
+}

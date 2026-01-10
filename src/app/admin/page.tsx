@@ -23,6 +23,10 @@ export default function AdminPage() {
   const [editingPassword, setEditingPassword] = useState("");
   const [editingLogoUrl, setEditingLogoUrl] = useState("");
   
+  // Delete confirmation
+  const [deleteStore, setDeleteStore] = useState<Store | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  
   // Global settings
   const [globalLoginLogo, setGlobalLoginLogo] = useState("");
 
@@ -207,6 +211,41 @@ export default function AdminPage() {
     setEditingName("");
     setEditingPassword("");
     setEditingLogoUrl("");
+  };
+
+  const handleDeleteStore = async () => {
+    if (!deleteStore || deleteConfirmName !== deleteStore.name) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/stores?storeId=${deleteStore.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Kunde inte radera butik");
+        return;
+      }
+
+      setSuccess(`Butik "${deleteStore.name}" har raderats`);
+      setDeleteStore(null);
+      setDeleteConfirmName("");
+      loadStores();
+    } catch (err) {
+      setError("Ett fel uppstod vid radering");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteStore(null);
+    setDeleteConfirmName("");
   };
 
   return (
@@ -587,21 +626,38 @@ export default function AdminPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleEditStore(store)}
-                        style={{
-                          padding: "8px 12px",
-                          background: "#2196F3",
-                          color: "white",
-                          border: "none",
-                          borderRadius: 4,
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Redigera
-                      </button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={() => handleEditStore(store)}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#2196F3",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 4,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Redigera
+                        </button>
+                        <button
+                          onClick={() => setDeleteStore(store)}
+                          style={{
+                            padding: "8px 12px",
+                            background: "#c00",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 4,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Radera
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -610,6 +666,96 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteStore && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={handleCancelDelete}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: 12,
+              maxWidth: 400,
+              width: "90%",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ color: "#c00", marginBottom: 16, fontSize: 20 }}>
+              ⚠️ Radera butik
+            </h3>
+            <p style={{ marginBottom: 16, lineHeight: 1.5 }}>
+              Är du säker på att du vill radera butiken <strong>"{deleteStore.name}"</strong>?
+            </p>
+            <p style={{ marginBottom: 16, color: "#666", fontSize: 14 }}>
+              Detta kommer att radera butiken och all tillhörande data (kategorier, ordrar, etc.) och kan inte ångras.
+            </p>
+            <p style={{ marginBottom: 12, fontWeight: 600 }}>
+              Skriv butikens namn för att bekräfta:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={deleteStore.name}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: "2px solid #ddd",
+                borderRadius: 6,
+                fontSize: 14,
+                marginBottom: 16,
+                boxSizing: "border-box",
+              }}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                onClick={handleCancelDelete}
+                style={{
+                  padding: "10px 16px",
+                  background: "#ccc",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleDeleteStore}
+                disabled={deleteConfirmName !== deleteStore.name || loading}
+                style={{
+                  padding: "10px 16px",
+                  background: deleteConfirmName === deleteStore.name && !loading ? "#c00" : "#ddd",
+                  color: deleteConfirmName === deleteStore.name && !loading ? "white" : "#999",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: deleteConfirmName === deleteStore.name && !loading ? "pointer" : "not-allowed",
+                  fontWeight: 600,
+                }}
+              >
+                {loading ? "Raderar..." : "Radera butik"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
