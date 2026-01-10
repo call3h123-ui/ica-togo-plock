@@ -359,6 +359,7 @@ export default function ToGoPage() {
   // Start/stop camera barcode scanning med html5-qrcode
   useEffect(() => {
     let isActive = true;
+    let timeout: NodeJS.Timeout | null = null;
 
     async function startScanning() {
       if (!cameraActive) {
