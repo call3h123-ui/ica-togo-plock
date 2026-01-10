@@ -1058,13 +1058,13 @@ export default function ToGoPage() {
               <div data-mode-menu-dropdown style={{
                 position: "absolute",
                 top: "calc(100% + 4px)",
-                right: 0,
+                left: 0,
                 background: "white",
                 border: "1px solid #ddd",
                 borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                zIndex: 1000,
-                minWidth: 160
+                boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                zIndex: 9999,
+                minWidth: 180
               }}>
                 <button
                   onClick={() => {
