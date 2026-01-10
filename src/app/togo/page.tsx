@@ -693,8 +693,13 @@ export default function ToGoPage() {
         // Check if product exists
         const existing = await ensureProduct(newEan);
         if (!existing) {
-          // New product - create it
+          // New product - create it and verify it was created
           await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: newImage || null, weight: newWeight ?? null });
+          // Verify product was created
+          const verifyProduct = await ensureProduct(newEan);
+          if (!verifyProduct) {
+            throw new Error("Kunde inte skapa produkten. Försök igen.");
+          }
         } else {
           // Product exists - update it
           await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: newImage || null, weight: newWeight ?? null });
@@ -821,8 +826,13 @@ export default function ToGoPage() {
         // Check if product already exists in database
         const existing = await ensureProduct(newEan);
         if (!existing) {
-          // New product - create it
+          // New product - create it and verify it was created before continuing
           await createProduct({ ean: newEan, name: newName.trim(), brand: newBrand.trim() || null, default_category_id: catId, image_url: imageToSave, weight: newWeight ?? null });
+          // Verify product was created by checking again
+          const verifyProduct = await ensureProduct(newEan);
+          if (!verifyProduct) {
+            throw new Error("Kunde inte skapa produkten. Försök igen.");
+          }
         } else {
           // Product exists - update it with new details (including category)
           await updateProduct(newEan, { name: newName.trim(), brand: newBrand.trim() || null, image_url: imageToSave, weight: newWeight ?? null, default_category_id: catId });
