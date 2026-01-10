@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, password } = body;
+    const { name, password, logo_url } = body;
 
     if (!name || !password) {
       return NextResponse.json(
@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: name.trim(),
         password_hash: password, // Will be hashed by the database trigger
+        logo_url: logo_url || null,
       })
       .select();
 
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { storeId, name, password } = body;
+    const { storeId, name, password, logo_url } = body;
 
     if (!storeId || !name) {
       return NextResponse.json(
@@ -62,6 +63,10 @@ export async function PUT(request: NextRequest) {
 
     if (password && password.trim()) {
       updateData.password_hash = password;
+    }
+
+    if (logo_url !== undefined) {
+      updateData.logo_url = logo_url;
     }
 
     const { data, error } = await supabase

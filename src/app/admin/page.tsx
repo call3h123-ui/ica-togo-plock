@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 interface Store {
   id: string;
   name: string;
+  logo_url?: string;
 }
 
 export default function AdminPage() {
@@ -13,12 +14,14 @@ export default function AdminPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [newStoreName, setNewStoreName] = useState("");
   const [newStorePassword, setNewStorePassword] = useState("");
+  const [newStoreLogoUrl, setNewStoreLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
+  const [editingLogoUrl, setEditingLogoUrl] = useState("");
 
   useEffect(() => {
     // Check if admin is authenticated
@@ -60,6 +63,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           name: newStoreName.trim(),
           password: newStorePassword.trim(),
+          logo_url: newStoreLogoUrl.trim() || null,
         }),
       });
 
@@ -73,6 +77,7 @@ export default function AdminPage() {
       setSuccess(`Butik "${newStoreName}" har lagts till`);
       setNewStoreName("");
       setNewStorePassword("");
+      setNewStoreLogoUrl("");
       loadStores();
     } catch (err) {
       setError("Ett fel uppstod");
@@ -91,6 +96,7 @@ export default function AdminPage() {
     setEditingStoreId(store.id);
     setEditingName(store.name);
     setEditingPassword("");
+    setEditingLogoUrl(store.logo_url || "");
   };
 
   const handleSaveEdit = async () => {
@@ -108,6 +114,7 @@ export default function AdminPage() {
           storeId: editingStoreId,
           name: editingName.trim(),
           password: editingPassword || undefined,
+          logo_url: editingLogoUrl.trim() || null,
         }),
       });
 
@@ -122,6 +129,7 @@ export default function AdminPage() {
       setEditingStoreId(null);
       setEditingName("");
       setEditingPassword("");
+      setEditingLogoUrl("");
       loadStores();
     } catch (err) {
       setError("Ett fel uppstod");
@@ -234,6 +242,26 @@ export default function AdminPage() {
               />
             </div>
 
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+                Logo URL (valfritt)
+              </label>
+              <input
+                type="text"
+                value={newStoreLogoUrl}
+                onChange={(e) => setNewStoreLogoUrl(e.target.value)}
+                placeholder="T.ex. https://..."
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -306,6 +334,25 @@ export default function AdminPage() {
                             value={editingPassword}
                             onChange={(e) => setEditingPassword(e.target.value)}
                             placeholder="Lämna tomt för att behålla"
+                            style={{
+                              width: "100%",
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              borderRadius: 4,
+                              fontSize: 14,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                            Logo URL (valfritt)
+                          </label>
+                          <input
+                            type="text"
+                            value={editingLogoUrl}
+                            onChange={(e) => setEditingLogoUrl(e.target.value)}
+                            placeholder="T.ex. https://..."
                             style={{
                               width: "100%",
                               padding: "8px",

@@ -216,25 +216,24 @@ export default function PlockPage() {
   }
 
   return (
-    <div style={{ position: "relative", maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
-      {storeLogo && (
-        <img
-          src={storeLogo}
-          alt="Butik"
-          style={{
-            position: "absolute",
-            top: "clamp(12px, 2vw, 20px)",
-            right: "clamp(12px, 2vw, 20px)",
-            height: "clamp(40px, 8vw, 60px)",
-            objectFit: "contain",
-            opacity: 0.8
-          }}
-        />
-      )}
+    <div style={{ maxWidth: 980, margin: "0 auto", padding: "clamp(16px, 4vw, 24px)", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: "200px" }}>
-          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📋 Plocklista</h1>
-          <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Markera produkter när de är plockade</p>
+        <div style={{ flex: 1, minWidth: "200px", display: "flex", alignItems: "center", gap: "clamp(12px, 3vw, 16px)" }}>
+          {storeLogo && (
+            <img
+              src={storeLogo}
+              alt="Butik"
+              style={{
+                height: "clamp(1.2em, 3vw, 1.5em)",
+                objectFit: "contain",
+                flexShrink: 0
+              }}
+            />
+          )}
+          <div>
+            <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📋 Plocklista</h1>
+            <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Markera produkter när de är plockade</p>
+          </div>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)" }}>
           <button 

@@ -72,6 +72,7 @@ export default function ToGoPage() {
   const [scanValue, setScanValue] = useState("");
   const [storeId, setStoreId] = useState<string>("");
   const [storeName, setStoreName] = useState<string>("");
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
   const modalScanRef = useRef<HTMLInputElement | null>(null);
@@ -269,9 +270,11 @@ export default function ToGoPage() {
     if (typeof window !== "undefined") {
       const savedStoreId = localStorage.getItem("storeId");
       const savedStoreName = localStorage.getItem("storeName");
+      const savedStoreLogo = localStorage.getItem("storeLogo");
       if (savedStoreId) {
         setStoreId(savedStoreId);
         setStoreName(savedStoreName || "");
+        setStoreLogo(savedStoreLogo);
         setIsAuthorized(true);
       } else {
         router.push("/login");
@@ -943,9 +946,22 @@ export default function ToGoPage() {
       `}</style>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(20px, 5vw, 30px)", paddingBottom: "clamp(12px, 3vw, 16px)", borderBottom: "2px solid #f0f0f0", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: "200px" }}>
-          <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🛒 Beställning</h1>
-          <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
+        <div style={{ flex: 1, minWidth: "200px", display: "flex", alignItems: "center", gap: "clamp(12px, 3vw, 16px)" }}>
+          {storeLogo && (
+            <img
+              src={storeLogo}
+              alt="Butik"
+              style={{
+                height: "clamp(1.2em, 3vw, 1.5em)",
+                objectFit: "contain",
+                flexShrink: 0
+              }}
+            />
+          )}
+          <div>
+            <h1 style={{ margin: 0, marginBottom: "4px", fontSize: "clamp(1.2em, 3vw, 1.5em)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🛒 Beställning</h1>
+            <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
+          </div>
         </div>
         <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div style={{ display: "flex", gap: 4, background: "#f0f0f0", borderRadius: 8, padding: 4 }}>
