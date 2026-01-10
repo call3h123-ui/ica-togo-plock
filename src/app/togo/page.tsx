@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-  // Felmeddelande för kamera
-  const [cameraError, setCameraError] = useState<string | null>(null);
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
@@ -74,6 +72,7 @@ export default function ToGoPage() {
   const [scanValue, setScanValue] = useState("");
   const [storeId, setStoreId] = useState<string>("");
   const [storeName, setStoreName] = useState<string>("");
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
   const modalScanRef = useRef<HTMLInputElement | null>(null);
   
