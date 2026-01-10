@@ -417,8 +417,9 @@ export default function ToGoPage() {
     let timeout: NodeJS.Timeout | null = null;
 
     async function startScanning() {
-      if (!cameraActive) {
-        console.log("startScanning avbruten: cameraActive är false");
+      // Only start camera if in camera mode AND cameraActive is true
+      if (!cameraActive || scannerMode !== 'camera') {
+        console.log("startScanning avbruten: cameraActive:", cameraActive, "scannerMode:", scannerMode);
         return;
       }
 
@@ -618,7 +619,7 @@ export default function ToGoPage() {
         html5QrCodeRef.current = null;
       }
     };
-  }, [cameraActive, selectedCameraId]);
+  }, [cameraActive, selectedCameraId, scannerMode]);
 
   // Säker funktion för att starta om kameran
   const restartCamera = useCallback(async () => {
