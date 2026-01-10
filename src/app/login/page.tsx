@@ -59,8 +59,8 @@ export default function LoginPage() {
         localStorage.setItem("storeLogo", data.logoUrl);
       }
 
-      // Redirect to home page to select between beställning/plocklista
-      router.push("/");
+      // Redirect directly to order page
+      router.push("/togo");
     } catch (err) {
       setError("Ett fel uppstod under inloggning");
       console.error(err);
@@ -117,7 +117,7 @@ export default function LoginPage() {
               setLogoClickCount(0);
             }
           }}
-          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain", cursor: "pointer" }}
+          style={{ maxHeight: "80px", maxWidth: "100%", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain", cursor: "pointer" }}
         />
 
         {/* Mode toggle - Only show if admin mode is unlocked */}
