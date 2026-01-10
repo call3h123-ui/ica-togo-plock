@@ -8,14 +8,14 @@ export async function GET() {
       .select("id, name, logo_url")
       .order("name");
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data || []);
   } catch (err) {
     console.error("Failed to fetch stores:", err);
-    return NextResponse.json(
-      { message: "Failed to fetch stores" },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 });
   }
 }

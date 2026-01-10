@@ -38,10 +38,17 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/stores");
       const data = await response.json();
-      setStores(data);
+      if (Array.isArray(data)) {
+        setStores(data);
+      } else {
+        console.error("Invalid stores response:", data);
+        setStores([]);
+        setError("Kunde inte ladda butiker (ogiltig respons)");
+      }
     } catch (err) {
       console.error("Failed to load stores:", err);
       setError("Kunde inte ladda butiker");
+      setStores([]);
     }
   };
 
