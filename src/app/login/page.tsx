@@ -89,7 +89,7 @@ export default function LoginPage() {
       <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
         
         <img 
-          src="/ica-logo.webp" 
+          src="https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp" 
           alt="ICA Logo" 
           onClick={() => {
             setLogoClickCount(logoClickCount + 1);
@@ -98,7 +98,7 @@ export default function LoginPage() {
               setLogoClickCount(0);
             }
           }}
-          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain", cursor: "pointer", filter: "brightness(0)" }}
+          style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "30px", display: "block", margin: "0 auto 30px", objectFit: "contain", cursor: "pointer" }}
         />
 
         {/* Mode toggle - Only show if admin mode is unlocked */}

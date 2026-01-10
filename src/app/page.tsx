@@ -26,7 +26,7 @@ export default function Home() {
       <div style={{ maxWidth: 500, width: "100%", maxHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ textAlign: "center", marginBottom: "clamp(30px, 8vw, 40px)" }}>
           <img 
-            src="/ica-logo.webp" 
+            src="https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp" 
             alt="ICA Logo" 
             style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "20px", objectFit: "contain" }}
           />
