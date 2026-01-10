@@ -1,3 +1,5 @@
+import { VersionGate } from "./components/version-gate";
+
 export const metadata = {
   title: "ICA ToGo Plock",
   description: "Intern beställning och plocklista",
@@ -93,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}</style>
       </head>
       <body>
-        {children}
+        <VersionGate>{children}</VersionGate>
       </body>
     </html>
   );
