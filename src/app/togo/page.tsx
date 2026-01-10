@@ -1004,11 +1004,14 @@ export default function ToGoPage() {
             <img
               src={storeLogo}
               alt="Butik"
+              onClick={() => window.location.reload()}
               style={{
                 height: "clamp(2.5em, 6vw, 3.2em)",
                 objectFit: "contain",
-                flexShrink: 0
+                flexShrink: 0,
+                cursor: "pointer"
               }}
+              title="Klicka för att uppdatera sidan"
             />
           )}
           <div>
