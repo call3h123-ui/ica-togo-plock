@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const DEFAULT_LOGO = "https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp";
+
 export default function Home() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [homeLogo, setHomeLogo] = useState(DEFAULT_LOGO);
 
   useEffect(() => {
     const storeId = localStorage.getItem("storeId");
@@ -15,6 +18,16 @@ export default function Home() {
     } else {
       setIsAuthorized(true);
     }
+
+    // Fetch global logo for home page
+    fetch("/api/admin/settings")
+      .then(res => res.json())
+      .then(data => {
+        if (data.login_logo_url) {
+          setHomeLogo(data.login_logo_url);
+        }
+      })
+      .catch(err => console.error("Failed to fetch home logo:", err));
   }, [router]);
 
   if (!isAuthorized) {
@@ -26,7 +39,7 @@ export default function Home() {
       <div style={{ maxWidth: 500, width: "100%", maxHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ textAlign: "center", marginBottom: "clamp(30px, 8vw, 40px)" }}>
           <img 
-            src="https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp" 
+            src={homeLogo} 
             alt="ICA Logo" 
             style={{ height: "clamp(60px, 15vw, 100px)", marginBottom: "20px", objectFit: "contain" }}
           />

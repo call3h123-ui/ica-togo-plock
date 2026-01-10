@@ -1,6 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
+// Default categories for new stores
+const DEFAULT_CATEGORIES = [
+  { name: "Kolonial", sort_index: 1 },
+  { name: "Kött/Chark", sort_index: 2 },
+  { name: "Frukt & Grönt", sort_index: 3 },
+];
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -34,9 +41,28 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    const newStore = data?.[0];
+    
+    // Create default categories for the new store
+    if (newStore?.id) {
+      const categoriesWithStoreId = DEFAULT_CATEGORIES.map(cat => ({
+        ...cat,
+        store_id: newStore.id,
+      }));
+      
+      const { error: catError } = await supabase
+        .from("categories")
+        .insert(categoriesWithStoreId);
+      
+      if (catError) {
+        console.error("Error creating default categories:", catError);
+        // Don't fail the store creation if categories fail
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      store: data?.[0],
+      store: newStore,
     });
   } catch (err) {
     console.error("Add store error:", err);

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+const DEFAULT_LOGO = "https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp";
+
 export default function LoginPage() {
   const router = useRouter();
   const [storeName, setStoreName] = useState("");
@@ -13,6 +15,19 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"store" | "admin">("store");
   const [showAdmin, setShowAdmin] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
+  const [loginLogo, setLoginLogo] = useState(DEFAULT_LOGO);
+
+  // Fetch global login logo
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then(res => res.json())
+      .then(data => {
+        if (data.login_logo_url) {
+          setLoginLogo(data.login_logo_url);
+        }
+      })
+      .catch(err => console.error("Failed to fetch login logo:", err));
+  }, []);
 
   const handleStoreLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +51,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Store auth info in localStorage
+      // Clear old store data first, then store new auth info
+      localStorage.removeItem("storeLogo");
       localStorage.setItem("storeId", data.storeId);
       localStorage.setItem("storeName", data.storeName);
       if (data.logoUrl) {
@@ -92,7 +108,7 @@ export default function LoginPage() {
       <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
         
         <img 
-          src="https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp" 
+          src={loginLogo} 
           alt="ICA Logo" 
           onClick={() => {
             setLogoClickCount(logoClickCount + 1);

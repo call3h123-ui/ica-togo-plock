@@ -22,6 +22,9 @@ export default function AdminPage() {
   const [editingName, setEditingName] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
   const [editingLogoUrl, setEditingLogoUrl] = useState("");
+  
+  // Global settings
+  const [globalLoginLogo, setGlobalLoginLogo] = useState("");
 
   const handleFileToDataUrl = (file: File, setter: (val: string) => void) => {
     const reader = new FileReader();
@@ -38,6 +41,7 @@ export default function AdminPage() {
     }
 
     loadStores();
+    loadGlobalSettings();
   }, [router]);
 
   const loadStores = async () => {
@@ -55,6 +59,45 @@ export default function AdminPage() {
       console.error("Failed to load stores:", err);
       setError("Kunde inte ladda butiker");
       setStores([]);
+    }
+  };
+
+  const loadGlobalSettings = async () => {
+    try {
+      const response = await fetch("/api/admin/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalLoginLogo(data.login_logo_url || "");
+      }
+    } catch (err) {
+      console.error("Failed to load global settings:", err);
+    }
+  };
+
+  const handleSaveGlobalSettings = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          login_logo_url: globalLoginLogo.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Kunde inte spara inställningar");
+        return;
+      }
+
+      setSuccess("Allmänna inställningar sparade");
+    } catch (err) {
+      setError("Ett fel uppstod");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,7 +130,7 @@ export default function AdminPage() {
         return;
       }
 
-      setSuccess(`Butik "${newStoreName}" har lagts till`);
+      setSuccess(`Butik "${newStoreName}" har lagts till med standardkategorier`);
       setNewStoreName("");
       setNewStorePassword("");
       setNewStoreLogoUrl("");
@@ -163,6 +206,7 @@ export default function AdminPage() {
     setEditingStoreId(null);
     setEditingName("");
     setEditingPassword("");
+    setEditingLogoUrl("");
   };
 
   return (
@@ -189,57 +233,101 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {error && (
+          <div style={{
+            background: "#fee",
+            border: "1px solid #fcc",
+            color: "#c00",
+            padding: "12px 16px",
+            borderRadius: 6,
+            marginBottom: 16,
+          }}>
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            background: "#efe",
+            border: "1px solid #cfc",
+            color: "#060",
+            padding: "12px 16px",
+            borderRadius: 6,
+            marginBottom: 16,
+          }}>
+            {success}
+          </div>
+        )}
+
+        {/* Global Settings */}
+        <div style={{ background: "white", padding: "24px", borderRadius: 12, marginBottom: 30, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>
+            🌐 Allmänna inställningar
+          </h2>
+          
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+              Logo på inloggningssidan & startsidan
+            </label>
+            <input
+              type="text"
+              value={globalLoginLogo}
+              onChange={(e) => setGlobalLoginLogo(e.target.value)}
+              placeholder="URL till logo (t.ex. https://...)"
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: "1px solid #ddd",
+                borderRadius: 6,
+                fontSize: 14,
+                boxSizing: "border-box",
+              }}
+            />
+            <div style={{ marginTop: 8 }}>
+              <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                eller ladda upp bild
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileToDataUrl(file, setGlobalLoginLogo);
+                  }
+                }}
+              />
+              {globalLoginLogo && (
+                <div style={{ marginTop: 8 }}>
+                  <img src={globalLoginLogo} alt="Logo preview" style={{ height: 60, objectFit: "contain" }} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveGlobalSettings}
+            disabled={loading}
+            style={{
+              padding: "10px 20px",
+              background: loading ? "#ccc" : "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              fontSize: 14,
+            }}
+          >
+            {loading ? "Sparar..." : "Spara allmänna inställningar"}
+          </button>
+        </div>
+
         {/* Add Store Form */}
         <div style={{ background: "white", padding: "24px", borderRadius: 12, marginBottom: 30, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>
-                          <div style={{ marginTop: 8 }}>
-                            <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
-                              eller ladda upp bild
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleFileToDataUrl(file, setEditingLogoUrl);
-                                }
-                              }}
-                            />
-                            {editingLogoUrl && (
-                              <div style={{ marginTop: 8 }}>
-                                <img src={editingLogoUrl} alt="Logo preview" style={{ height: 48, objectFit: "contain" }} />
-                              </div>
-                            )}
-                          </div>
-            Lägg till ny butik
+            ➕ Lägg till ny butik
           </h2>
-
-          {error && (
-            <div style={{
-              background: "#fee",
-              border: "1px solid #fcc",
-              color: "#c00",
-              padding: "12px 16px",
-              borderRadius: 6,
-              marginBottom: 16,
-            }}>
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={{
-              background: "#efe",
-              border: "1px solid #cfc",
-              color: "#060",
-              padding: "12px 16px",
-              borderRadius: 6,
-              marginBottom: 16,
-            }}>
-              {success}
-            </div>
-          )}
 
           <form onSubmit={handleAddStore}>
             <div style={{ marginBottom: 16 }}>
@@ -262,7 +350,7 @@ export default function AdminPage() {
               />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
                 Lösenord
               </label>
@@ -284,13 +372,13 @@ export default function AdminPage() {
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-                Logo URL (valfritt)
+                Butiklogo (valfritt)
               </label>
               <input
                 type="text"
                 value={newStoreLogoUrl}
                 onChange={(e) => setNewStoreLogoUrl(e.target.value)}
-                placeholder="T.ex. https://..."
+                placeholder="URL till logo (t.ex. https://...)"
                 style={{
                   width: "100%",
                   padding: "10px 12px",
@@ -322,6 +410,10 @@ export default function AdminPage() {
               </div>
             </div>
 
+            <p style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
+              💡 Nya butiker får automatiskt standardkategorier: Kolonial, Kött/Chark, Frukt & Grönt
+            </p>
+
             <button
               type="submit"
               disabled={loading}
@@ -344,7 +436,7 @@ export default function AdminPage() {
         {/* Stores List */}
         <div style={{ background: "white", padding: "24px", borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>
-            Befintliga butiker ({stores.length})
+            🏪 Befintliga butiker ({stores.length})
           </h2>
 
           {stores.length === 0 ? (
@@ -385,7 +477,7 @@ export default function AdminPage() {
                             }}
                           />
                         </div>
-                        <div>
+                        <div style={{ marginBottom: 12 }}>
                           <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
                             Nytt lösenord (lämna tomt för att behålla)
                           </label>
@@ -404,15 +496,15 @@ export default function AdminPage() {
                             }}
                           />
                         </div>
-                        <div style={{ marginTop: 12 }}>
+                        <div>
                           <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
-                            Logo URL (valfritt)
+                            Butiklogo (valfritt)
                           </label>
                           <input
                             type="text"
                             value={editingLogoUrl}
                             onChange={(e) => setEditingLogoUrl(e.target.value)}
-                            placeholder="T.ex. https://..."
+                            placeholder="URL till logo (t.ex. https://...)"
                             style={{
                               width: "100%",
                               padding: "8px",
@@ -444,7 +536,7 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
                         <button
                           type="button"
                           onClick={handleSaveEdit}
@@ -482,13 +574,18 @@ export default function AdminPage() {
                     </>
                   ) : (
                     <>
-                      <div>
-                        <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                          {store.name}
-                        </p>
-                        <p style={{ fontSize: 12, color: "#666" }}>
-                          ID: {store.id.substring(0, 8)}...
-                        </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        {store.logo_url && (
+                          <img src={store.logo_url} alt="" style={{ height: 32, objectFit: "contain" }} />
+                        )}
+                        <div>
+                          <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+                            {store.name}
+                          </p>
+                          <p style={{ fontSize: 12, color: "#666" }}>
+                            ID: {store.id.substring(0, 8)}...
+                          </p>
+                        </div>
                       </div>
                       <button
                         onClick={() => handleEditStore(store)}
