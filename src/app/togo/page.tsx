@@ -355,8 +355,13 @@ export default function ToGoPage() {
     return "";
   });
 
-  // Hämta tillgängliga kameror
+  // Hämta tillgängliga kameror - endast när kameraläge är aktivt
   useEffect(() => {
+    // Endast hämta kameror när användaren väljer kameraläge
+    if (scannerMode !== 'camera') {
+      return;
+    }
+    
     Html5Qrcode.getCameras().then(cameras => {
       console.log("Tillgängliga kameror:", cameras);
       setAvailableCameras(cameras);
@@ -389,7 +394,7 @@ export default function ToGoPage() {
       setSelectedCameraId("");
       localStorage.removeItem("selectedCameraId");
     });
-  }, []);
+  }, [scannerMode]);
 
   // Slå på/av ficklampa (torch) - hjälper med läsbarhet
   async function toggleTorch() {
