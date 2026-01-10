@@ -194,13 +194,81 @@ export async function createCategory(name: string, storeId?: string): Promise<Ca
   return data as Category;
 }
 
-export async function updateCategory(id: string, name: string, storeId?: string): Promise<void> {
+export async function updateCategory(id: string, name: string, storeId?: string, sortIndex?: number): Promise<void> {
+  const updateObj: any = { name };
+  if (sortIndex !== undefined) {
+    updateObj.sort_index = sortIndex;
+  }
   const { error } = await supabase
     .from("categories")
-    .update({ name })
+    .update(updateObj)
     .eq("id", id)
     .eq("store_id", storeId || null);
   if (error) throw error;
+}
+
+export async function moveCategoryUp(id: string, currentSortIndex: number, storeId?: string): Promise<void> {
+  // Get the category with the next lower sort_index
+  let query = supabase
+    .from("categories")
+    .select("id, sort_index")
+    .lt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: false })
+    .limit(1);
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data: cats, error: getError } = await query;
+  if (getError) throw getError;
+  
+  if (!cats || cats.length === 0) return; // Already at top
+
+  const swapCat = cats[0];
+  
+  // Swap sort_index values
+  await supabase
+    .from("categories")
+    .update({ sort_index: swapCat.sort_index })
+    .eq("id", id);
+  
+  await supabase
+    .from("categories")
+    .update({ sort_index: currentSortIndex })
+    .eq("id", swapCat.id);
+}
+
+export async function moveCategoryDown(id: string, currentSortIndex: number, storeId?: string): Promise<void> {
+  // Get the category with the next higher sort_index
+  let query = supabase
+    .from("categories")
+    .select("id, sort_index")
+    .gt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: true })
+    .limit(1);
+
+  if (storeId) {
+    query = query.eq("store_id", storeId);
+  }
+
+  const { data: cats, error: getError } = await query;
+  if (getError) throw getError;
+  
+  if (!cats || cats.length === 0) return; // Already at bottom
+
+  const swapCat = cats[0];
+  
+  // Swap sort_index values
+  await supabase
+    .from("categories")
+    .update({ sort_index: swapCat.sort_index })
+    .eq("id", id);
+  
+  await supabase
+    .from("categories")
+    .update({ sort_index: currentSortIndex })
+    .eq("id", swapCat.id);
 }
 
 export async function deleteCategory(id: string, storeId?: string): Promise<void> {

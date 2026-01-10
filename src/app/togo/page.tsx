@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
-import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory } from "@/lib/data";
+import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown } from "@/lib/data";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import * as XLSX from "xlsx";
 
@@ -1260,20 +1260,19 @@ export default function ToGoPage() {
           </div>
         ) : (
           <div>
-            {Object.entries(groupedByCategory).map(([catId, items]) => {
-              const category = categories.find((c) => c.id === catId);
-              const catName = category?.name || "Okategoriserad";
-              return (
-                <div key={catId} style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
-                  <h3 style={{ marginBottom: "clamp(8px, 2vw, 12px)", fontSize: "clamp(0.95em, 2vw, 1.05em)", color: "#666" }}>{catName}</h3>
+            {categories
+              .map((cat) => ({ cat, items: groupedByCategory[cat.id] }))
+              .filter(({ items }) => items && items.length > 0)
+              .map(({ cat, items }) => (
+                <div key={cat.id} style={{ marginBottom: "clamp(16px, 4vw, 24px)" }}>
+                  <h3 style={{ marginBottom: "clamp(8px, 2vw, 12px)", fontSize: "clamp(0.95em, 2vw, 1.05em)", color: "#666" }}>{cat.name}</h3>
                   <div style={{ display: "grid", gap: "clamp(8px, 2vw, 12px)" }}>
-                    {items.map((r) => (
+                    {items!.map((r) => (
                       <RowCard key={r.id} row={r} categories={categories} storeId={storeId} onChanged={refresh} />
                     ))}
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         )}
       </div>
@@ -1989,6 +1988,34 @@ export default function ToGoPage() {
                     ) : (
                       <>
                         <span style={{ flex: 1 }}>{cat.name}</span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await moveCategoryUp(cat.id, cat.sort_index, storeId);
+                              await refresh();
+                            } catch (err) {
+                              alert("Kunde inte flytta avdelning");
+                            }
+                          }}
+                          title="Flytta upp"
+                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await moveCategoryDown(cat.id, cat.sort_index, storeId);
+                              await refresh();
+                            } catch (err) {
+                              alert("Kunde inte flytta avdelning");
+                            }
+                          }}
+                          title="Flytta ned"
+                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                        >
+                          ▼
+                        </button>
                         <button
                           onClick={() => {
                             setEditingCatId(cat.id);
