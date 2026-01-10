@@ -1004,7 +1004,7 @@ export default function ToGoPage() {
               src={storeLogo}
               alt="Butik"
               style={{
-                height: "clamp(3.6em, 9vw, 4.5em)",
+                height: "clamp(2.5em, 6vw, 3.2em)",
                 objectFit: "contain",
                 flexShrink: 0
               }}
