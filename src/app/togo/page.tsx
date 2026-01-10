@@ -438,17 +438,18 @@ export default function ToGoPage() {
         return;
       }
 
-      // Försök hitta scanner-element (huvudvy eller modal)
-      let scannerId = "html5-qrcode-scanner";
+      // Försök hitta scanner-element - prioritera modal om den finns synlig
+      let scannerId = "html5-qrcode-scanner-modal";
       let scannerElement = document.getElementById(scannerId);
       
-      if (!scannerElement) {
-        scannerId = "html5-qrcode-scanner-modal";
+      // Om modal-element inte finns eller är dolt, använd huvudvyn
+      if (!scannerElement || scannerElement.style.display === 'none') {
+        scannerId = "html5-qrcode-scanner";
         scannerElement = document.getElementById(scannerId);
       }
       
       if (!scannerElement) {
-        console.error("Scanner element hittades inte (varken huvud eller modal)");
+        console.error("Scanner element hittades inte (varken modal eller huvud)");
         // Försök igen efter ytterligare delay
         await new Promise(resolve => setTimeout(resolve, 300));
         scannerElement = document.getElementById("html5-qrcode-scanner-modal") || document.getElementById("html5-qrcode-scanner");
@@ -1517,27 +1518,6 @@ export default function ToGoPage() {
                       )}
                     </>
                   )}
-                  {!cameraActive && (
-                    <button
-                      onClick={() => {
-                        console.log("Starta kamera-knapp klickad");
-                        setCameraActive(true);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "20px",
-                        background: "#E4002B",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontSize: "1em",
-                        fontWeight: 600,
-                        cursor: "pointer"
-                      }}
-                    >
-                      📷 Starta kamera
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -1758,11 +1738,11 @@ export default function ToGoPage() {
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Vikt</label>
+                  <label style={{ display: "block", marginBottom: 4, fontWeight: 600, color: "#333", fontSize: "0.9em" }}>Vikt/volym</label>
                   <input
                     value={newWeight ?? ""}
                     onChange={(e) => setNewWeight(e.target.value ? e.target.value : null)}
-                    placeholder="T.ex. 1kg"
+                    placeholder="T.ex. 1kg eller 500ml"
                     style={{ width: "100%", padding: 8, fontSize: 14, borderRadius: 6, border: "1px solid #ddd" }}
                   />
                 </div>
