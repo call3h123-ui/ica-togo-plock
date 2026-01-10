@@ -415,6 +415,26 @@ export default function AdminPage() {
                               boxSizing: "border-box",
                             }}
                           />
+                          <div style={{ marginTop: 8 }}>
+                            <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                              eller ladda upp bild
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleFileToDataUrl(file, setEditingLogoUrl);
+                                }
+                              }}
+                            />
+                            {editingLogoUrl && (
+                              <div style={{ marginTop: 8 }}>
+                                <img src={editingLogoUrl} alt="Logo preview" style={{ height: 48, objectFit: "contain" }} />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
