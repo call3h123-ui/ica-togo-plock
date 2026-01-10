@@ -23,6 +23,12 @@ export default function AdminPage() {
   const [editingPassword, setEditingPassword] = useState("");
   const [editingLogoUrl, setEditingLogoUrl] = useState("");
 
+  const handleFileToDataUrl = (file: File, setter: (val: string) => void) => {
+    const reader = new FileReader();
+    reader.onloadend = () => setter(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     // Check if admin is authenticated
     const adminToken = localStorage.getItem("adminToken");
@@ -179,6 +185,26 @@ export default function AdminPage() {
         {/* Add Store Form */}
         <div style={{ background: "white", padding: "24px", borderRadius: 12, marginBottom: 30, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>
+                          <div style={{ marginTop: 8 }}>
+                            <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                              eller ladda upp bild
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleFileToDataUrl(file, setEditingLogoUrl);
+                                }
+                              }}
+                            />
+                            {editingLogoUrl && (
+                              <div style={{ marginTop: 8 }}>
+                                <img src={editingLogoUrl} alt="Logo preview" style={{ height: 48, objectFit: "contain" }} />
+                              </div>
+                            )}
+                          </div>
             Lägg till ny butik
           </h2>
 
@@ -267,6 +293,26 @@ export default function AdminPage() {
                   boxSizing: "border-box",
                 }}
               />
+              <div style={{ marginTop: 8 }}>
+                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                  eller ladda upp bild
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileToDataUrl(file, setNewStoreLogoUrl);
+                    }
+                  }}
+                />
+                {newStoreLogoUrl && (
+                  <div style={{ marginTop: 8 }}>
+                    <img src={newStoreLogoUrl} alt="Logo preview" style={{ height: 48, objectFit: "contain" }} />
+                  </div>
+                )}
+              </div>
             </div>
 
             <button
