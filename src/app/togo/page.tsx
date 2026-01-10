@@ -903,26 +903,11 @@ export default function ToGoPage() {
           await rpcIncrement(newEan, catId, newQty, storeId);
         }
       } else {
-        // No EAN - create a manual order item without product database entry
-        // This allows adding items without scanning
-        const { data, error } = await supabase
-          .from("order_items")
-          .insert([
-            {
-              ean: "MANUAL_" + Date.now(), // Temporary unique identifier
-              qty: newQty,
-              category_id: catId,
-              is_picked: false,
-              created_at: new Date().toISOString()
-            }
-          ])
-          .select();
-
-        if (error) throw error;
-
-        // If insert succeeded, we need to create or get a product for display
-        // Create a product with special "MANUAL_" prefix
+        // No EAN - create a manual product first, then add to order
+        // Generate unique EAN for manual entries
         const manualEan = "MANUAL_" + Date.now();
+        
+        // 1. First create product in products table (required for foreign key)
         await createProduct({ 
           ean: manualEan, 
           name: newName.trim(), 
@@ -931,6 +916,9 @@ export default function ToGoPage() {
           image_url: newImage || null, 
           weight: newWeight ?? null 
         });
+        
+        // 2. Then add to order using increment (same as scanned products)
+        await rpcIncrement(manualEan, catId, newQty, storeId);
       }
 
       await refresh();
@@ -1447,55 +1435,6 @@ export default function ToGoPage() {
             
             {/* Liten EAN-info och kamera innanför modalen */}
             <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 12px)", marginBottom: 12, background: "#f9f9f9", padding: "clamp(8px, 2vw, 12px)", borderRadius: 8 }}>
-              
-              {/* Lägesväljare inuti modal */}
-              <div style={{ display: "flex", gap: 4, background: "#e0e0e0", borderRadius: 6, padding: 3, width: "fit-content" }}>
-                <button 
-                  onClick={() => { setScannerMode('handheld'); setCameraActive(false); }}
-                  style={{ 
-                    padding: "4px 8px", 
-                    background: scannerMode === 'handheld' ? "#E4002B" : "transparent", 
-                    color: scannerMode === 'handheld' ? "white" : "#666", 
-                    border: "none",
-                    borderRadius: 4, 
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "0.75em"
-                  }}
-                >
-                  🔫
-                </button>
-                <button 
-                  onClick={() => { setScannerMode('camera'); setCameraActive(true); }}
-                  style={{ 
-                    padding: "4px 8px", 
-                    background: scannerMode === 'camera' ? "#E4002B" : "transparent", 
-                    color: scannerMode === 'camera' ? "white" : "#666", 
-                    border: "none",
-                    borderRadius: 4, 
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "0.75em"
-                  }}
-                >
-                  📷
-                </button>
-                <button 
-                  onClick={() => { setScannerMode('manual'); setCameraActive(false); }}
-                  style={{ 
-                    padding: "4px 8px", 
-                    background: scannerMode === 'manual' ? "#E4002B" : "transparent", 
-                    color: scannerMode === 'manual' ? "white" : "#666", 
-                    border: "none",
-                    borderRadius: 4, 
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontSize: "0.75em"
-                  }}
-                >
-                  ⌨️
-                </button>
-              </div>
 
               {/* Kamera-vy i modal - använder html5-qrcode */}
               {scannerMode === 'camera' && (
