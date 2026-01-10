@@ -1972,8 +1972,11 @@ export default function ToGoPage() {
                 maxHeight: "70vh",
                 objectFit: "contain",
                 borderRadius: 8,
-                marginBottom: "clamp(16px, 3vw, 20px)"
+                marginBottom: "clamp(16px, 3vw, 20px)",
+                userSelect: "none"
               }}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
             />
             <button
               onClick={() => setExpandedImage(null)}
@@ -2235,7 +2238,13 @@ function RowCard({ row, categories, storeId, onChanged }: { row: OrderRow; categ
   return (
     <div style={{ border: "2px solid #e5e5e5", borderRadius: 12, padding: "clamp(12px, 3vw, 16px)", display: "flex", gap: "clamp(12px, 3vw, 16px)", alignItems: "center", background: "#fafafa", transition: "all 0.2s", flexWrap: "wrap" }}>
       {row.product?.image_url && (
-        <img src={row.product.image_url} alt="Produktbild" style={{ width: "80px", height: "100px", objectFit: "cover", borderRadius: 8 }} />
+        <img 
+          src={row.product.image_url} 
+          alt="Produktbild" 
+          style={{ width: "80px", height: "100px", objectFit: "cover", borderRadius: 8, pointerEvents: "none", userSelect: "none" }}
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+        />
       )}
       <div style={{ flex: "1 1 200px", minWidth: "150px" }}>
         <div style={{ fontSize: "clamp(1.1em, 2.2vw, 1.15em)", fontWeight: 600, color: "#222", marginBottom: 4 }}>{row.product?.name ?? "Okänd artikel"}</div>

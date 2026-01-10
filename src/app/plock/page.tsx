@@ -496,7 +496,9 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
             <img 
               src={(row.product as any).image_url} 
               alt={row.product?.name}
-              style={{ width: "50px", height: "65px", objectFit: "contain", borderRadius: 4, background: "white", cursor: "pointer", transition: "all 0.2s" }}
+              style={{ width: "50px", height: "65px", objectFit: "contain", borderRadius: 4, background: "white", cursor: "pointer", transition: "all 0.2s", userSelect: "none" }}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -569,8 +571,11 @@ function PlockRow({ row, onToggle, toned }: { row: OrderRow; onToggle: (v: boole
                 maxHeight: "70vh",
                 objectFit: "contain",
                 borderRadius: 8,
-                marginBottom: "clamp(16px, 3vw, 20px)"
+                marginBottom: "clamp(16px, 3vw, 20px)",
+                userSelect: "none"
               }}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
             />
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "clamp(1.1em, 2.5vw, 1.3em)", fontWeight: 600, marginBottom: 8 }}>{row.product?.name}</div>
