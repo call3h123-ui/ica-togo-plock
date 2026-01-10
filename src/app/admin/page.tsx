@@ -138,6 +138,13 @@ export default function AdminPage() {
         return;
       }
 
+      // If we just updated the currently logged-in store, refresh cached logo
+      if (typeof window !== "undefined" && editingStoreId && localStorage.getItem("storeId") === editingStoreId) {
+        const newLogo = editingLogoUrl.trim() || "";
+        localStorage.setItem("storeLogo", newLogo);
+        localStorage.setItem("storeLogoUpdated", Date.now().toString());
+      }
+
       setSuccess(`Butik uppdaterad`);
       setEditingStoreId(null);
       setEditingName("");

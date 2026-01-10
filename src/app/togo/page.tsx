@@ -76,6 +76,20 @@ export default function ToGoPage() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
   const modalScanRef = useRef<HTMLInputElement | null>(null);
+
+  const fetchLogo = async (id: string) => {
+    try {
+      const res = await fetch("/api/stores");
+      const data = await res.json();
+      const match = Array.isArray(data) ? data.find((s: any) => s.id === id) : null;
+      if (match?.logo_url) {
+        setStoreLogo(match.logo_url);
+        localStorage.setItem("storeLogo", match.logo_url);
+      }
+    } catch (err) {
+      console.error("Failed to refresh store logo", err);
+    }
+  };
   
   // Ref för att undvika stale closures i kameraskanning
   const handleScanRef = useRef<(value: string) => Promise<void>>();
@@ -276,11 +290,30 @@ export default function ToGoPage() {
         setStoreName(savedStoreName || "");
         setStoreLogo(savedStoreLogo);
         setIsAuthorized(true);
+        fetchLogo(savedStoreId); // ensure latest logo after admin updates
       } else {
         router.push("/login");
       }
     }
   }, [router]);
+
+  // Refresh logo from server in case it was updated in admin (overwrites cached localStorage)
+  useEffect(() => {
+    if (!storeId) return;
+    fetchLogo(storeId);
+  }, [storeId]);
+
+  // Refresh logo when localStorage changes in another tab (admin updates)
+  useEffect(() => {
+    if (typeof window === "undefined" || !storeId) return;
+    const handler = (e: StorageEvent) => {
+      if (e.key === "storeLogo" || e.key === "storeLogoUpdated") {
+        fetchLogo(storeId);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [storeId]);
 
   // Save scanner mode to localStorage
   useEffect(() => {
