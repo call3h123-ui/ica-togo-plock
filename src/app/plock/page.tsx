@@ -288,8 +288,9 @@ export default function PlockPage() {
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0e0")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+            title="Filter"
           >
-            ⚙️ Filter
+            ⚙️
           </button>
           <Link 
             href="/togo" 

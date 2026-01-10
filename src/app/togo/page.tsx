@@ -1040,9 +1040,9 @@ export default function ToGoPage() {
               onMouseLeave={(e) => !modeMenuOpen && (e.currentTarget.style.background = "#f0f0f0")}
               title="Växla inmatningsläge"
             >
-              {scannerMode === 'handheld' && '🔫'}
-              {scannerMode === 'camera' && '📷'}
-              {scannerMode === 'manual' && '⌨️'}
+              {scannerMode === 'handheld' && '🔫 Skanner'}
+              {scannerMode === 'camera' && '📷 Kamera'}
+              {scannerMode === 'manual' && '⌨️ Manuell'}
               {' ▼'}
             </button>
             {modeMenuOpen && (
@@ -1176,7 +1176,7 @@ export default function ToGoPage() {
             onMouseLeave={(e) => (e.currentTarget.style.background = "#f0f0f0")}
             title="Plocklista"
           >
-            ⇄
+            ⇄ Plocklista
           </Link>
         </div>
       </div>
