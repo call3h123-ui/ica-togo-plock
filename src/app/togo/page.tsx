@@ -459,10 +459,14 @@ export default function ToGoPage() {
         // Stoppa eventuell befintlig scanner först
         if (html5QrCodeRef.current) {
           try {
-            await html5QrCodeRef.current.stop();
-            console.log("Befintlig scanner stoppad");
+            const state = html5QrCodeRef.current.getState();
+            // Only stop if scanner is actually running (state 2) or paused (state 3)
+            if (state === 2 || state === 3) {
+              await html5QrCodeRef.current.stop();
+              console.log("Befintlig scanner stoppad");
+            }
           } catch (e) {
-            console.log("Stop error (ignoreras):", e);
+            // Ignore stop errors - scanner might not be running
           }
           html5QrCodeRef.current = null;
         }
@@ -605,7 +609,12 @@ export default function ToGoPage() {
       if (timeout) clearTimeout(timeout);
       // Stoppa html5-qrcode
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(e => console.log("Stop error:", e));
+        try {
+          const state = html5QrCodeRef.current.getState();
+          if (state === 2 || state === 3) {
+            html5QrCodeRef.current.stop().catch(() => {});
+          }
+        } catch (e) {}
         html5QrCodeRef.current = null;
       }
     };
@@ -618,11 +627,12 @@ export default function ToGoPage() {
     // Stoppa befintlig kamera först
     if (html5QrCodeRef.current) {
       try {
-        await html5QrCodeRef.current.stop();
-        console.log("Kamera stoppad via html5QrCode.stop()");
-      } catch (e) {
-        console.log("Stop error:", e);
-      }
+        const state = html5QrCodeRef.current.getState();
+        if (state === 2 || state === 3) {
+          await html5QrCodeRef.current.stop();
+          console.log("Kamera stoppad via html5QrCode.stop()");
+        }
+      } catch (e) {}
       html5QrCodeRef.current = null;
     }
     
@@ -1050,6 +1060,7 @@ export default function ToGoPage() {
                 <button
                   onClick={() => {
                     setScannerMode('handheld');
+                    setCameraActive(false);
                     setModeMenuOpen(false);
                   }}
                   style={{
@@ -1097,6 +1108,7 @@ export default function ToGoPage() {
                 <button
                   onClick={() => {
                     setScannerMode('manual');
+                    setCameraActive(false);
                     setModeMenuOpen(false);
                   }}
                   style={{
