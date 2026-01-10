@@ -34,12 +34,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch store logo
+    const { data: storeData, error: storeError } = await supabase
+      .from("stores")
+      .select("id, logo_url")
+      .ilike("name", storeName)
+      .maybeSingle();
+
+    if (storeError) {
+      console.error("Store fetch error:", storeError);
+    }
+
     // data is the storeId returned from the RPC function
     // Return success - client will store in localStorage
     return NextResponse.json({
       success: true,
       storeId: data,
       storeName: storeName,
+      logoUrl: storeData?.logo_url || null,
     });
   } catch (err) {
     console.error("Login error:", err);

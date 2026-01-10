@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"store" | "admin">("store");
   const [showAdmin, setShowAdmin] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
+  const [previewLogo, setPreviewLogo] = useState<string | null>(null);
 
   const handleStoreLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +40,9 @@ export default function LoginPage() {
       // Store auth info in localStorage
       localStorage.setItem("storeId", data.storeId);
       localStorage.setItem("storeName", data.storeName);
+      if (data.logoUrl) {
+        localStorage.setItem("storeLogo", data.logoUrl);
+      }
 
       // Redirect to home page to select between beställning/plocklista
       router.push("/");
@@ -84,12 +88,37 @@ export default function LoginPage() {
     }
   };
 
+  // Visa förhandsvisning av butikens logga när man skriver in namn
+  useEffect(() => {
+    if (!storeName.trim()) {
+      setPreviewLogo(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storeName: storeName,
+            password: "dummy", // Dummy password - vi vill bara hämta logga
+          }),
+        });
+        const data = await response.json();
+        setPreviewLogo(data.logoUrl || null);
+      } catch {
+        // Ignore error on preview
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [storeName]);
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#e3000b", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
         
         <img 
-          src="https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp" 
+          src={previewLogo || "https://assets.icanet.se/image/upload/t_MinButik_Mediabank_preview/nx8cd2yadrnpl49hqiwc.webp"} 
           alt="ICA Logo" 
           onClick={() => {
             setLogoClickCount(logoClickCount + 1);
