@@ -131,8 +131,28 @@ export default function ToGoPage() {
   // Kameraskanning
   const [cameraActive, setCameraActive] = useState(false);
 
+  // Mode menu dropdown
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+
   // Redigeringsfält visibility
   const [expandedEditFields, setExpandedEditFields] = useState(false);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modeMenuOpen) {
+        const modeButton = document.querySelector('[data-mode-menu-button]');
+        const modeDropdown = document.querySelector('[data-mode-menu-dropdown]');
+        if (modeButton && modeDropdown && !modeButton.contains(e.target as Node) && !modeDropdown.contains(e.target as Node)) {
+          setModeMenuOpen(false);
+        }
+      }
+    };
+    if (typeof window !== "undefined") {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [modeMenuOpen]);
 
   // Banner för redan befintlig vara
   const [alreadyExistsBanner, setAlreadyExistsBanner] = useState(false);
@@ -848,6 +868,7 @@ export default function ToGoPage() {
     if (!newName.trim()) return alert("Skriv produktnamn.");
     if (!newBrand.trim()) return alert("Skriv varumärke.");
     if (!newWeight) return alert("Skriv vikt.");
+    // EAN is now optional - allow saving without scanning
 
     const catId = newCat || defaultCatId;
     try {
@@ -996,75 +1017,122 @@ export default function ToGoPage() {
             <p style={{ color: "#666", fontSize: "clamp(0.85em, 2vw, 0.95em)", margin: 0 }}>Lägg till produkter genom att scanna eller skriva EAN</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ display: "flex", gap: 4, background: "#f0f0f0", borderRadius: 8, padding: 4 }}>
+        <div style={{ display: "flex", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+          {/* Mode selector dropdown */}
+          <div style={{ position: "relative" }}>
             <button 
-              onClick={() => setScannerMode('handheld')}
+              data-mode-menu-button
+              onClick={() => setModeMenuOpen(!modeMenuOpen)}
               style={{ 
-                padding: "8px 12px", 
-                background: scannerMode === 'handheld' ? "#E4002B" : "transparent", 
-                color: scannerMode === 'handheld' ? "white" : "#333", 
+                padding: "10px 16px", 
+                background: "#f0f0f0", 
+                color: "#333", 
                 border: "none",
-                borderRadius: 6, 
+                borderRadius: 8, 
                 fontWeight: 500,
                 cursor: "pointer",
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
-                minHeight: "36px",
+                minHeight: "44px",
                 display: "flex",
                 alignItems: "center",
-                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
+                fontSize: "clamp(0.85em, 2vw, 0.95em)"
               }}
-              title="Handskanner (utan tangentbord)"
+              onMouseEnter={(e) => !modeMenuOpen && (e.currentTarget.style.background = "#e0e0e0")}
+              onMouseLeave={(e) => !modeMenuOpen && (e.currentTarget.style.background = "#f0f0f0")}
+              title="Växla inmatningsläge"
             >
-              🔫 Skanner
+              {scannerMode === 'handheld' && '🔫 Skanner'}
+              {scannerMode === 'camera' && '📷 Kamera'}
+              {scannerMode === 'manual' && '⌨️ Manuell'}
+              {' ▼'}
             </button>
-            <button 
-              onClick={() => {
-                setScannerMode('camera');
-                setCameraActive(true);
-              }}
-              style={{ 
-                padding: "8px 12px", 
-                background: scannerMode === 'camera' ? "#E4002B" : "transparent", 
-                color: scannerMode === 'camera' ? "white" : "#333", 
-                border: "none",
-                borderRadius: 6, 
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-                minHeight: "36px",
-                display: "flex",
-                alignItems: "center",
-                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
-              }}
-              title="Mobilkamera"
-            >
-              📷 Kamera
-            </button>
-            <button 
-              onClick={() => setScannerMode('manual')}
-              style={{ 
-                padding: "8px 12px", 
-                background: scannerMode === 'manual' ? "#E4002B" : "transparent", 
-                color: scannerMode === 'manual' ? "white" : "#333", 
-                border: "none",
-                borderRadius: 6, 
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-                minHeight: "36px",
-                display: "flex",
-                alignItems: "center",
-                fontSize: "clamp(0.8em, 1.8vw, 0.9em)"
-              }}
-              title="Manuell EAN-inmatning"
-            >
-              ⌨️ Manuell
-            </button>
+            {modeMenuOpen && (
+              <div data-mode-menu-dropdown style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                right: 0,
+                background: "white",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                minWidth: 160
+              }}>
+                <button
+                  onClick={() => {
+                    setScannerMode('handheld');
+                    setModeMenuOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    background: scannerMode === 'handheld' ? "#E4002B" : "transparent",
+                    color: scannerMode === 'handheld' ? "white" : "#333",
+                    border: "none",
+                    borderRadius: scannerMode === 'handheld' ? 8 : 0,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "0.95em",
+                    fontWeight: scannerMode === 'handheld' ? 600 : 500,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => !( scannerMode === 'handheld') && (e.currentTarget.style.background = "#f5f5f5")}
+                  onMouseLeave={(e) => !(scannerMode === 'handheld') && (e.currentTarget.style.background = "transparent")}
+                >
+                  🔫 Handskanner
+                </button>
+                <button
+                  onClick={() => {
+                    setScannerMode('camera');
+                    setCameraActive(true);
+                    setModeMenuOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    background: scannerMode === 'camera' ? "#E4002B" : "transparent",
+                    color: scannerMode === 'camera' ? "white" : "#333",
+                    border: "none",
+                    borderRadius: 0,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "0.95em",
+                    fontWeight: scannerMode === 'camera' ? 600 : 500,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => !(scannerMode === 'camera') && (e.currentTarget.style.background = "#f5f5f5")}
+                  onMouseLeave={(e) => !(scannerMode === 'camera') && (e.currentTarget.style.background = "transparent")}
+                >
+                  📷 Mobilkamera
+                </button>
+                <button
+                  onClick={() => {
+                    setScannerMode('manual');
+                    setModeMenuOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    background: scannerMode === 'manual' ? "#E4002B" : "transparent",
+                    color: scannerMode === 'manual' ? "white" : "#333",
+                    border: "none",
+                    borderRadius: 0,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: "0.95em",
+                    fontWeight: scannerMode === 'manual' ? 600 : 500,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => !(scannerMode === 'manual') && (e.currentTarget.style.background = "#f5f5f5")}
+                  onMouseLeave={(e) => !(scannerMode === 'manual') && (e.currentTarget.style.background = "transparent")}
+                >
+                  ⌨️ Manuell inmatning
+                </button>
+              </div>
+            )}
           </div>
+          
           <button 
             onClick={() => setSettingsOpen(true)}
             style={{ 
