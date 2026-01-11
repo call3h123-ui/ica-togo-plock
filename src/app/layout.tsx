@@ -1,15 +1,30 @@
 import { VersionGate } from "./components/version-gate";
+import type { Viewport } from 'next';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#E4002B',
+};
 
 export const metadata = {
   title: "ICA ToGo Plock",
   description: "Intern beställning och plocklista",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ICA ToGo",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="sv">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         <style>{`
           * {
             margin: 0;
