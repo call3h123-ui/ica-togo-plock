@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { storeId, name, password, logo_url } = body;
+    const { storeId, name, password, logo_url, email } = body;
 
     if (!storeId || !name) {
       return NextResponse.json(
@@ -93,6 +93,10 @@ export async function PUT(request: NextRequest) {
 
     if (logo_url !== undefined) {
       updateData.logo_url = logo_url;
+    }
+
+    if (email !== undefined) {
+      updateData.email = email;
     }
 
     const { data, error } = await supabase

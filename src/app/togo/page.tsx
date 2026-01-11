@@ -85,6 +85,10 @@ export default function ToGoPage() {
       if (match?.logo_url) {
         setStoreLogo(match.logo_url);
         localStorage.setItem("storeLogo", match.logo_url);
+      } else {
+        // Clear logo if not set for this store
+        setStoreLogo(null);
+        localStorage.removeItem("storeLogo");
       }
     } catch (err) {
       console.error("Failed to refresh store logo", err);

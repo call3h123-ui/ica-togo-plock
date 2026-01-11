@@ -7,6 +7,7 @@ interface Store {
   id: string;
   name: string;
   logo_url?: string;
+  email?: string;
 }
 
 export default function AdminPage() {
@@ -22,6 +23,7 @@ export default function AdminPage() {
   const [editingName, setEditingName] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
   const [editingLogoUrl, setEditingLogoUrl] = useState("");
+  const [editingEmail, setEditingEmail] = useState("");
   
   // Delete confirmation
   const [deleteStore, setDeleteStore] = useState<Store | null>(null);
@@ -157,6 +159,7 @@ export default function AdminPage() {
     setEditingName(store.name);
     setEditingPassword("");
     setEditingLogoUrl(store.logo_url || "");
+    setEditingEmail(store.email || "");
   };
 
   const handleSaveEdit = async () => {
@@ -175,6 +178,7 @@ export default function AdminPage() {
           name: editingName.trim(),
           password: editingPassword || undefined,
           logo_url: editingLogoUrl.trim() || null,
+          email: editingEmail.trim() || null,
         }),
       });
 
@@ -197,6 +201,7 @@ export default function AdminPage() {
       setEditingName("");
       setEditingPassword("");
       setEditingLogoUrl("");
+      setEditingEmail("");
       loadStores();
     } catch (err) {
       setError("Ett fel uppstod");
@@ -211,6 +216,7 @@ export default function AdminPage() {
     setEditingName("");
     setEditingPassword("");
     setEditingLogoUrl("");
+    setEditingEmail("");
   };
 
   const handleDeleteStore = async () => {
@@ -535,6 +541,25 @@ export default function AdminPage() {
                             }}
                           />
                         </div>
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
+                            E-post
+                          </label>
+                          <input
+                            type="email"
+                            value={editingEmail}
+                            onChange={(e) => setEditingEmail(e.target.value)}
+                            placeholder="butik@email.se"
+                            style={{
+                              width: "100%",
+                              padding: "8px",
+                              border: "1px solid #ddd",
+                              borderRadius: 4,
+                              fontSize: 14,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
                         <div>
                           <label style={{ display: "block", marginBottom: 4, fontSize: 12, fontWeight: 600 }}>
                             Butiklogo (valfritt)
@@ -621,6 +646,11 @@ export default function AdminPage() {
                           <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
                             {store.name}
                           </p>
+                          {store.email && (
+                            <p style={{ fontSize: 13, color: "#555", marginBottom: 2 }}>
+                              📧 {store.email}
+                            </p>
+                          )}
                           <p style={{ fontSize: 12, color: "#666" }}>
                             ID: {store.id.substring(0, 8)}...
                           </p>
