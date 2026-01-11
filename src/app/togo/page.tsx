@@ -312,7 +312,7 @@ export default function ToGoPage() {
       if (savedStoreId) {
         setStoreId(savedStoreId);
         setStoreName(savedStoreName || "");
-        setStoreLogo(savedStoreLogo);
+        setStoreLogo(savedStoreLogo || null);
         setIsAuthorized(true);
         fetchLogo(savedStoreId); // ensure latest logo after admin updates
       } else {
