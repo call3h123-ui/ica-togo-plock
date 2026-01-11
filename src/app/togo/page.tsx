@@ -886,9 +886,10 @@ export default function ToGoPage() {
     if (!newName.trim()) return alert("Skriv produktnamn.");
     if (!newBrand.trim()) return alert("Skriv varumärke.");
     if (!newWeight) return alert("Skriv vikt.");
+    if (!newCat) return alert("Välj kategori.");
     // EAN is now optional - allow saving without scanning
 
-    const catId = newCat || defaultCatId;
+    const catId = newCat;
     try {
       // If there's an EAN, handle as usual (with product lookup/creation)
       if (newEan) {
