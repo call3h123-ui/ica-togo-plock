@@ -16,6 +16,10 @@ export default function LoginPage() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [logoClickCount, setLogoClickCount] = useState(0);
   const [loginLogo, setLoginLogo] = useState(DEFAULT_LOGO);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [registerStoreName, setRegisterStoreName] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
 
   // Fetch global login logo
   useEffect(() => {
@@ -103,6 +107,47 @@ export default function LoginPage() {
     }
   };
 
+  const handleStoreRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeName: registerStoreName,
+          password: registerPassword,
+          email: registerEmail,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Registrering misslyckades");
+        return;
+      }
+
+      // Auto-login after registration
+      localStorage.removeItem("storeLogo");
+      localStorage.setItem("storeId", data.storeId);
+      localStorage.setItem("storeName", data.storeName);
+      if (data.logoUrl) {
+        localStorage.setItem("storeLogo", data.logoUrl);
+      }
+
+      // Redirect to togo
+      router.push("/togo");
+    } catch (err) {
+      setError("Ett fel uppstod under registrering");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#e3000b", padding: "20px" }}>
       <div style={{ width: "100%", maxWidth: 400, background: "white", padding: "40px", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
@@ -174,7 +219,7 @@ export default function LoginPage() {
 
         {/* Store Login */}
         {/* Store Login Form */}
-        {mode === "store" && (
+        {mode === "store" && !registerOpen && (
           <form onSubmit={handleStoreLogin}>
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
@@ -231,9 +276,133 @@ export default function LoginPage() {
                 fontWeight: 600,
                 fontSize: 16,
                 cursor: loading || !storeName ? "not-allowed" : "pointer",
+                marginBottom: 12,
               }}
             >
               {loading ? "Loggar in..." : "Logga in"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRegisterOpen(true)}
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                background: "transparent",
+                color: "#e3000b",
+                border: "2px solid #e3000b",
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              Skapa butikskonto
+            </button>
+          </form>
+        )}
+
+        {/* Store Registration Form */}
+        {mode === "store" && registerOpen && (
+          <form onSubmit={handleStoreRegister}>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
+                Butiknamn
+              </label>
+              <input
+                type="text"
+                value={registerStoreName}
+                onChange={(e) => setRegisterStoreName(e.target.value)}
+                placeholder="Ange butiknamn"
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
+                Lösenord
+              </label>
+              <input
+                type="password"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                placeholder="Ange lösenord"
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: 14 }}>
+                E-post
+              </label>
+              <input
+                type="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                placeholder="din@email.se"
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !registerStoreName || !registerPassword || !registerEmail}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: loading || !registerStoreName || !registerPassword || !registerEmail ? "#ccc" : "#e3000b",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: loading || !registerStoreName || !registerPassword || !registerEmail ? "not-allowed" : "pointer",
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "Registrerar..." : "Registrera butik"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRegisterOpen(false)}
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                background: "transparent",
+                color: "#666",
+                border: "2px solid #ddd",
+                borderRadius: 6,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              Tillbaka till inloggning
             </button>
           </form>
         )}

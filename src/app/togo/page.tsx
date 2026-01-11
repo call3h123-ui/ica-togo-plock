@@ -2145,7 +2145,7 @@ export default function ToGoPage() {
               <div style={{ padding: "12px", background: "#f9f9f9", borderRadius: 8, marginBottom: 12 }}>
                 <p style={{ margin: "0 0 10px 0", fontSize: "0.9em", color: "#666" }}>
                   Ladda upp en Excel-fil med följande kolumner:<br/>
-                  <strong>A:</strong> EAN | <strong>B:</strong> Produktnamn | <strong>C:</strong> Varumärke | <strong>D:</strong> Vikt | <strong>E:</strong> Avdelning
+                  <strong>A:</strong> EAN | <strong>B:</strong> Produktnamn | <strong>C:</strong> Varumärke | <strong>D:</strong> Vikt/volym | <strong>E:</strong> Avdelning
                 </p>
                 <input
                   type="file"
@@ -2177,8 +2177,23 @@ export default function ToGoPage() {
               </div>
             </div>
 
+            {/* Feedback Section */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #ddd", marginBottom: 24 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Feedback & Önskemål</h3>
+              <p style={{ margin: "0 0 12px 0", fontSize: "0.9em", color: "#666" }}>
+                Har du förslag på förbättringar eller upptäckt något fel?<br/>
+                Skicka gärna feedback till:{" "}
+                <a 
+                  href="mailto:calle.johnsson@nara.ica.se?subject=Feedback ICA ToGo/Plock" 
+                  style={{ color: "#e3000b", fontWeight: 600, textDecoration: "underline" }}
+                >
+                  calle.johnsson@nara.ica.se
+                </a>
+              </p>
+            </div>
+
             {/* Logout Section */}
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #ddd" }}>
+            <div style={{ marginTop: 0, paddingTop: 20, borderTop: "1px solid #ddd" }}>
               <button
                 onClick={() => {
                   localStorage.removeItem("storeId");
