@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getGlobalCategories, createGlobalCategory, updateGlobalCategory, deleteGlobalCategory, moveGlobalCategoryUp, moveGlobalCategoryDown } from "@/lib/data";
+import type { Category } from "@/lib/types";
 
 interface Store {
   id: string;
@@ -31,6 +33,12 @@ export default function AdminPage() {
   
   // Global settings
   const [globalLoginLogo, setGlobalLoginLogo] = useState("");
+  
+  // Global categories
+  const [globalCategories, setGlobalCategories] = useState<Category[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
 
   const handleFileToDataUrl = (file: File, setter: (val: string) => void) => {
     const reader = new FileReader();
@@ -48,7 +56,17 @@ export default function AdminPage() {
 
     loadStores();
     loadGlobalSettings();
+    loadGlobalCategories();
   }, [router]);
+
+  const loadGlobalCategories = async () => {
+    try {
+      const cats = await getGlobalCategories();
+      setGlobalCategories(cats);
+    } catch (err) {
+      console.error("Failed to load global categories:", err);
+    }
+  };
 
   const loadStores = async () => {
     try {
@@ -101,6 +119,92 @@ export default function AdminPage() {
       setSuccess("Allmänna inställningar sparade");
     } catch (err) {
       setError("Ett fel uppstod");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddGlobalCategory = async () => {
+    if (!newCategoryName.trim()) {
+      setError("Kategornamn kan inte vara tomt");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+    try {
+      await createGlobalCategory(newCategoryName.trim());
+      setNewCategoryName("");
+      setSuccess("Kategori skapad");
+      loadGlobalCategories();
+    } catch (err) {
+      setError("Kunde inte skapa kategori");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveGlobalCategory = async (catId: string) => {
+    if (!editingCatName.trim()) {
+      setError("Kategornamn kan inte vara tomt");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+    try {
+      await updateGlobalCategory(catId, editingCatName.trim());
+      setEditingCatId(null);
+      setEditingCatName("");
+      setSuccess("Kategori uppdaterad");
+      loadGlobalCategories();
+    } catch (err) {
+      setError("Kunde inte uppdatera kategori");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteGlobalCategory = async (catId: string) => {
+    if (!confirm("Är du säker på att du vill radera denna kategori?")) return;
+    
+    setLoading(true);
+    setError("");
+    try {
+      await deleteGlobalCategory(catId);
+      setSuccess("Kategori raderad");
+      loadGlobalCategories();
+    } catch (err) {
+      setError("Kunde inte radera kategori");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMoveCategoryUp = async (catId: string, sortIndex: number) => {
+    setLoading(true);
+    try {
+      await moveGlobalCategoryUp(catId, sortIndex);
+      loadGlobalCategories();
+    } catch (err) {
+      setError("Kunde inte flytta kategori");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMoveCategoryDown = async (catId: string, sortIndex: number) => {
+    setLoading(true);
+    try {
+      await moveGlobalCategoryDown(catId, sortIndex);
+      loadGlobalCategories();
+    } catch (err) {
+      setError("Kunde inte flytta kategori");
       console.error(err);
     } finally {
       setLoading(false);
@@ -366,6 +470,102 @@ export default function AdminPage() {
           >
             {loading ? "Sparar..." : "Spara allmänna inställningar"}
           </button>
+        </div>
+
+        {/* Global Categories */}
+        <div style={{ background: "white", padding: "24px", borderRadius: 12, marginBottom: 30, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 20 }}>
+            📂 Globala avdelningar
+          </h2>
+          
+          <p style={{ fontSize: 14, color: "#666", marginBottom: 16 }}>
+            Dessa avdelningar är gemensamma för alla butiker. Varje butik kan själv välja sortering.
+          </p>
+
+          <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
+            {globalCategories.map((cat) => (
+              <div key={cat.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
+                {editingCatId === cat.id ? (
+                  <>
+                    <input
+                      value={editingCatName}
+                      onChange={(e) => setEditingCatName(e.target.value)}
+                      style={{ flex: 1, padding: "8px", borderRadius: 4, border: "1px solid #ddd", fontSize: "0.95em" }}
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleSaveGlobalCategory(cat.id)}
+                      disabled={loading}
+                      style={{ padding: "8px 12px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      Spara
+                    </button>
+                    <button
+                      onClick={() => setEditingCatId(null)}
+                      style={{ padding: "8px 12px", fontSize: "0.85em", background: "#999", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      Avbryt
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ flex: 1 }}>{cat.name}</span>
+                    <button
+                      onClick={() => handleMoveCategoryUp(cat.id, cat.sort_index)}
+                      title="Flytta upp"
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => handleMoveCategoryDown(cat.id, cat.sort_index)}
+                      title="Flytta ned"
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      ▼
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCatId(cat.id);
+                        setEditingCatName(cat.name);
+                      }}
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#2196F3", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      Redigera
+                    </button>
+                    <button
+                      onClick={() => handleDeleteGlobalCategory(cat.id)}
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#E4002B", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      Ta bort
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Ny avdelningsnamn"
+              style={{ flex: 1, padding: "10px", borderRadius: 4, border: "2px solid #E4002B", fontSize: "0.95em" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddGlobalCategory();
+                }
+              }}
+            />
+            <button
+              onClick={handleAddGlobalCategory}
+              disabled={loading}
+              style={{ padding: "10px 16px", fontSize: "0.85em", background: loading ? "#ccc" : "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: loading ? "not-allowed" : "pointer", fontWeight: 500 }}
+            >
+              + Lägg till
+            </button>
+          </div>
         </div>
 
         {/* Add Store Form */}

@@ -279,3 +279,162 @@ export async function deleteCategory(id: string, storeId?: string): Promise<void
     .eq("store_id", storeId || null);
   if (error) throw error;
 }
+
+// ========== GLOBAL CATEGORIES (NEW) ==========
+
+export async function getGlobalCategories(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("sort_index", { ascending: true });
+  
+  if (error) throw error;
+  return data as Category[];
+}
+
+export async function createGlobalCategory(name: string): Promise<Category> {
+  const { data: cats, error: getError } = await supabase
+    .from("categories")
+    .select("sort_index")
+    .order("sort_index", { ascending: false })
+    .limit(1);
+
+  if (getError) throw getError;
+  const maxIndex = cats && cats.length > 0 ? cats[0].sort_index : 0;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({ name, sort_index: maxIndex + 1 })
+    .select()
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Category;
+}
+
+export async function updateGlobalCategory(id: string, name: string, sortIndex?: number): Promise<void> {
+  const updateObj: any = { name };
+  if (sortIndex !== undefined) {
+    updateObj.sort_index = sortIndex;
+  }
+  const { error } = await supabase
+    .from("categories")
+    .update(updateObj)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteGlobalCategory(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function moveGlobalCategoryUp(id: string, currentSortIndex: number): Promise<void> {
+  const { data: cats, error: getError } = await supabase
+    .from("categories")
+    .select("id, sort_index")
+    .lt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: false })
+    .limit(1);
+
+  if (getError) throw getError;
+  if (!cats || cats.length === 0) return;
+
+  const swapCat = cats[0];
+  await supabase.from("categories").update({ sort_index: swapCat.sort_index }).eq("id", id);
+  await supabase.from("categories").update({ sort_index: currentSortIndex }).eq("id", swapCat.id);
+}
+
+export async function moveGlobalCategoryDown(id: string, currentSortIndex: number): Promise<void> {
+  const { data: cats, error: getError } = await supabase
+    .from("categories")
+    .select("id, sort_index")
+    .gt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: true })
+    .limit(1);
+
+  if (getError) throw getError;
+  if (!cats || cats.length === 0) return;
+
+  const swapCat = cats[0];
+  await supabase.from("categories").update({ sort_index: swapCat.sort_index }).eq("id", id);
+  await supabase.from("categories").update({ sort_index: currentSortIndex }).eq("id", swapCat.id);
+}
+
+// ========== STORE CATEGORY PREFERENCES ==========
+
+export async function getStoreCategoryPreferences(storeId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("store_category_preferences")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("sort_index", { ascending: true });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateStoreCategoryPreference(storeId: string, categoryId: string, sortIndex: number): Promise<void> {
+  const { error } = await supabase
+    .from("store_category_preferences")
+    .update({ sort_index: sortIndex })
+    .eq("store_id", storeId)
+    .eq("category_id", categoryId);
+  
+  if (error) throw error;
+}
+
+export async function moveStoreCategoryUp(storeId: string, categoryId: string, currentSortIndex: number): Promise<void> {
+  const { data: prefs, error: getError } = await supabase
+    .from("store_category_preferences")
+    .select("id, category_id, sort_index")
+    .eq("store_id", storeId)
+    .lt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: false })
+    .limit(1);
+
+  if (getError) throw getError;
+  if (!prefs || prefs.length === 0) return;
+
+  const swapPref = prefs[0];
+  await supabase
+    .from("store_category_preferences")
+    .update({ sort_index: swapPref.sort_index })
+    .eq("store_id", storeId)
+    .eq("category_id", categoryId);
+  
+  await supabase
+    .from("store_category_preferences")
+    .update({ sort_index: currentSortIndex })
+    .eq("store_id", storeId)
+    .eq("category_id", swapPref.category_id);
+}
+
+export async function moveStoreCategoryDown(storeId: string, categoryId: string, currentSortIndex: number): Promise<void> {
+  const { data: prefs, error: getError } = await supabase
+    .from("store_category_preferences")
+    .select("id, category_id, sort_index")
+    .eq("store_id", storeId)
+    .gt("sort_index", currentSortIndex)
+    .order("sort_index", { ascending: true })
+    .limit(1);
+
+  if (getError) throw getError;
+  if (!prefs || prefs.length === 0) return;
+
+  const swapPref = prefs[0];
+  await supabase
+    .from("store_category_preferences")
+    .update({ sort_index: swapPref.sort_index })
+    .eq("store_id", storeId)
+    .eq("category_id", categoryId);
+  
+  await supabase
+    .from("store_category_preferences")
+    .update({ sort_index: currentSortIndex })
+    .eq("store_id", storeId)
+    .eq("category_id", swapPref.category_id);
+}
