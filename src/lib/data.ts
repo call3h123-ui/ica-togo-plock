@@ -2,18 +2,40 @@ import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
 
 export async function getCategories(storeId?: string): Promise<Category[]> {
-  let query = supabase
-    .from("categories")
-    .select("*")
-    .order("sort_index", { ascending: true });
-
+  // If storeId provided, get ordered by store preference; otherwise get all global
   if (storeId) {
-    query = query.eq("store_id", storeId);
-  }
+    // Get categories ordered by this store's preference sort_index
+    const { data: prefs, error: prefError } = await supabase
+      .from("store_category_preferences")
+      .select("category_id, sort_index")
+      .eq("store_id", storeId)
+      .order("sort_index", { ascending: true });
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as Category[];
+    if (prefError) throw prefError;
+
+    if (!prefs || prefs.length === 0) {
+      // If no preferences exist, return all global categories
+      return getGlobalCategories();
+    }
+
+    // Fetch the actual category details in the preference order
+    const categoryIds = prefs.map(p => p.category_id);
+    const { data: cats, error: catError } = await supabase
+      .from("categories")
+      .select("*")
+      .in("id", categoryIds);
+
+    if (catError) throw catError;
+
+    // Sort by the preference order
+    const catMap = new Map(cats?.map(c => [c.id, c]) || []);
+    return prefs
+      .map(p => catMap.get(p.category_id))
+      .filter((c): c is Category => c !== undefined);
+  } else {
+    // Get all global categories
+    return getGlobalCategories();
+  }
 }
 
 export async function getOrderRows(storeId?: string): Promise<OrderRow[]> {

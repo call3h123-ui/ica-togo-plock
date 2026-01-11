@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Category, OrderRow } from "@/lib/types";
-import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, createCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown } from "@/lib/data";
+import { createProduct, ensureProduct, getCategories, getOrderRows, rpcIncrement, rpcSetQty, updateProduct, moveStoreCategoryUp, moveStoreCategoryDown } from "@/lib/data";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { getProxiedImageUrl, getSafeImageUrl } from "@/lib/imageProxy";
 import * as XLSX from "xlsx";
@@ -117,9 +117,6 @@ export default function ToGoPage() {
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
-  const [editingCatName, setEditingCatName] = useState("");
-  const [newCatName, setNewCatName] = useState("");
   
   // Scanner mode: 'handheld' = handskanner, 'camera' = mobilkamera, 'manual' = manuell inmatning
   const [scannerMode, setScannerMode] = useState<'handheld' | 'camera' | 'manual'>(() => {
@@ -2018,128 +2015,44 @@ export default function ToGoPage() {
 
             {/* Avdelningar/Kategorier Section */}
             <div style={{ marginBottom: 24 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Avdelningar</h3>
+              <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: "1.1em" }}>Avdelningar - sortering</h3>
+              <p style={{ margin: "0 0 12px 0", fontSize: "0.85em", color: "#666" }}>
+                Sortera avdelningarna enligt dina preferenser (globala avdelningar skapas av admin).
+              </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {categories.map((cat) => (
                   <div key={cat.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px", background: "#f5f5f5", borderRadius: 8 }}>
-                    {editingCatId === cat.id ? (
-                      <>
-                        <input
-                          value={editingCatName}
-                          onChange={(e) => setEditingCatName(e.target.value)}
-                          style={{ flex: 1, padding: "8px", borderRadius: 4, border: "1px solid #ddd", fontSize: "0.95em" }}
-                          autoFocus
-                        />
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateCategory(cat.id, editingCatName, storeId);
-                              await refresh();
-                              setEditingCatId(null);
-                            } catch (err) {
-                              alert("Kunde inte uppdatera avdelning");
-                            }
-                          }}
-                          style={{ padding: "8px 12px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          Spara
-                        </button>
-                        <button
-                          onClick={() => setEditingCatId(null)}
-                          style={{ padding: "8px 12px", fontSize: "0.85em", background: "#999", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          Avbryt
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span style={{ flex: 1 }}>{cat.name}</span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await moveCategoryUp(cat.id, cat.sort_index, storeId);
-                              await refresh();
-                            } catch (err) {
-                              alert("Kunde inte flytta avdelning");
-                            }
-                          }}
-                          title="Flytta upp"
-                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await moveCategoryDown(cat.id, cat.sort_index, storeId);
-                              await refresh();
-                            } catch (err) {
-                              alert("Kunde inte flytta avdelning");
-                            }
-                          }}
-                          title="Flytta ned"
-                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          ▼
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingCatId(cat.id);
-                            setEditingCatName(cat.name);
-                          }}
-                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#2196F3", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          Redigera
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (!confirm(`Ta bort avdelning "${cat.name}"?`)) return;
-                            try {
-                              await deleteCategory(cat.id, storeId);
-                              await refresh();
-                            } catch (err) {
-                              alert("Kunde inte ta bort avdelning");
-                            }
-                          }}
-                          style={{ padding: "6px 10px", fontSize: "0.8em", background: "#E4002B", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
-                        >
-                          Ta bort
-                        </button>
-                      </>
-                    )}
+                    <span style={{ flex: 1 }}>{cat.name}</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await moveStoreCategoryUp(storeId, cat.id, cat.sort_index);
+                          await refresh();
+                        } catch (err) {
+                          alert("Kunde inte flytta avdelning");
+                        }
+                      }}
+                      title="Flytta upp"
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await moveStoreCategoryDown(storeId, cat.id, cat.sort_index);
+                          await refresh();
+                        } catch (err) {
+                          alert("Kunde inte flytta avdelning");
+                        }
+                      }}
+                      title="Flytta ned"
+                      style={{ padding: "6px 10px", fontSize: "0.8em", background: "#9C27B0", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}
+                    >
+                      ▼
+                    </button>
                   </div>
                 ))}
-              </div>
-
-              {/* Add new category */}
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <input
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="Ny avdelningsnamn"
-                  style={{ flex: 1, padding: "10px", borderRadius: 4, border: "2px solid #E4002B", fontSize: "0.95em" }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      // Skapa kategori via onclick nedan
-                    }
-                  }}
-                />
-                <button
-                  onClick={async () => {
-                    if (!newCatName.trim()) return alert("Skriv avdelningsnamn");
-                    try {
-                      await createCategory(newCatName, storeId);
-                      await refresh();
-                      setNewCatName("");
-                    } catch (err) {
-                      alert("Kunde inte lägga till avdelning");
-                    }
-                  }}
-                  style={{ padding: "10px 16px", fontSize: "0.85em", background: "#4CAF50", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
-                >
-                  + Lägg till
-                </button>
               </div>
             </div>
 
