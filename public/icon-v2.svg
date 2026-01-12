@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Red background -->
+  <rect x="0" y="0" width="512" height="512" rx="64" fill="#E4002B"/>
+
+  <!-- Checklist card -->
+  <g filter="url(#shadow)">
+    <rect x="106" y="100" width="300" height="260" rx="24" fill="#ffffff"/>
+    <!-- Card header tab -->
+    <rect x="106" y="100" width="300" height="40" rx="24" fill="#f2f2f2"/>
+
+    <!-- Checklist items -->
+    <!-- Item 1 -->
+    <circle cx="140" cy="170" r="10" fill="#22c55e"/>
+    <path d="M134 170 l6 6 l12 -12" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="170" y="158" width="200" height="20" rx="6" fill="#e9e9e9"/>
+
+    <!-- Item 2 -->
+    <circle cx="140" cy="220" r="10" fill="#22c55e"/>
+    <path d="M134 220 l6 6 l12 -12" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="170" y="208" width="180" height="20" rx="6" fill="#e9e9e9"/>
+
+    <!-- Item 3 -->
+    <circle cx="140" cy="270" r="10" fill="#22c55e"/>
+    <path d="M134 270 l6 6 l12 -12" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="170" y="258" width="220" height="20" rx="6" fill="#e9e9e9"/>
+  </g>
+
+  <!-- Title under icon -->
+  <text x="256" y="420" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#ffffff" text-anchor="middle">Butiksplock</text>
+</svg>

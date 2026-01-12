@@ -23,8 +23,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="sv">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192-v2.png" />
+        <link rel="apple-touch-icon" href="/icon-192-v2.png" />
         <style>{`
           * {
             margin: 0;
