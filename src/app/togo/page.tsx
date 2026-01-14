@@ -976,6 +976,30 @@ export default function ToGoPage() {
     }
   }
 
+  // Stäng modalen och spara automatiskt om all obligatorisk data finns
+  async function closeModalWithSave() {
+    // Kontrollera om alla obligatoriska fält är ifyllda
+    const hasRequiredFields = newName.trim() && newBrand.trim() && newWeight && newCat;
+    
+    // Kontrollera om användaren har börjat fylla i något (delvis ifyllt)
+    const hasPartialData = newName.trim() || newBrand.trim() || newWeight || newEan;
+    
+    if (hasRequiredFields) {
+      // Spara produkten innan stängning
+      await saveNewProduct();
+    } else if (hasPartialData) {
+      // Användaren har börjat fylla i data men inte allt - fråga om de vill stänga utan att spara
+      const confirmClose = window.confirm("All obligatorisk info är inte ifylld. Vill du stänga utan att spara?");
+      if (!confirmClose) {
+        return; // Avbryt stängning
+      }
+    }
+    
+    // Stäng modalen och återställ
+    setModalOpen(false);
+    setCameraActive(false);
+    scanRef.current?.focus();
+  }
 
 
   const unpicked = rows.filter((r) => !r.is_picked && r.qty > 0);
@@ -1568,11 +1592,7 @@ export default function ToGoPage() {
 
               {/* Stäng-knapp */}
               <button
-                onClick={() => {
-                  setModalOpen(false);
-                  setCameraActive(false);
-                  scanRef.current?.focus();
-                }}
+                onClick={closeModalWithSave}
                 style={{ 
                   position: "absolute", 
                   top: 8, 
@@ -1589,7 +1609,7 @@ export default function ToGoPage() {
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#E4002B")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
-                title="Stäng"
+                title="Stäng (sparar automatiskt om all info är ifylld)"
               >
                 ✕
               </button>
@@ -1913,11 +1933,7 @@ export default function ToGoPage() {
             {/* Stäng - längst ned */}
             <div style={{ display: "flex", gap: 12 }}>
               <button
-                onClick={() => {
-                  setModalOpen(false);
-                  setCameraActive(false);
-                  scanRef.current?.focus();
-                }}
+                onClick={closeModalWithSave}
                 style={{ padding: 14, width: "100%", background: "#E4002B", color: "white", fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer", fontSize: 16, transition: "all 0.2s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
